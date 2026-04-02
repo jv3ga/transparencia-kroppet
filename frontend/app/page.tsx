@@ -51,14 +51,6 @@ export default async function HomePage() {
           >
             Ver contratos públicos →
           </Link>
-          <a
-            href="https://github.com/kroppet/transparencia-kroppet"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 h-9 rounded-lg border border-border bg-card text-sm text-muted-foreground transition-colors hover:text-foreground hover:border-muted-foreground"
-          >
-            Código abierto
-          </a>
         </div>
       </section>
 
