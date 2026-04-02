@@ -22,11 +22,11 @@ import {
 import type { Contrato } from "@/lib/supabase";
 
 const ESTADO_LABEL: Record<string, { label: string; color: string }> = {
-  PUB: { label: "Publicado",    color: "bg-blue-100 text-blue-800" },
-  ADJ: { label: "Adjudicado",   color: "bg-green-100 text-green-800" },
-  RES: { label: "Resuelto",     color: "bg-gray-100 text-gray-800" },
-  EV:  { label: "En evaluación",color: "bg-yellow-100 text-yellow-800" },
-  LIC: { label: "Licitación",   color: "bg-purple-100 text-purple-800" },
+  PUB: { label: "Publicado",     color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
+  ADJ: { label: "Adjudicado",    color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" },
+  RES: { label: "Resuelto",      color: "bg-muted text-muted-foreground" },
+  EV:  { label: "En evaluación", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
+  LIC: { label: "Licitación",    color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" },
 };
 
 function formatEuros(n: number | null): string {
