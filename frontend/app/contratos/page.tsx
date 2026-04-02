@@ -1,9 +1,11 @@
 import { supabase, type Contrato } from "@/lib/supabase";
 import ContratosTable from "./contratos-table";
 
-export const revalidate = 3600; // refresca cada hora
+export const dynamic = "force-dynamic";
 
-async function getContratos(query?: string, estado?: string): Promise<Contrato[]> {
+const PAGE_SIZE = 50;
+
+async function getFirstPage(q?: string, estado?: string): Promise<Contrato[]> {
   let req = supabase
     .from("contratos")
     .select(`
@@ -14,13 +16,12 @@ async function getContratos(query?: string, estado?: string): Promise<Contrato[]
       organos  ( nombre )
     `)
     .order("fecha_publicacion", { ascending: false })
-    .limit(200);
+    .range(0, PAGE_SIZE - 1);
 
-  if (query) req = req.ilike("objeto", `%${query}%`);
+  if (q)      req = req.ilike("objeto", `%${q}%`);
   if (estado) req = req.eq("estado", estado);
 
-  const { data, error } = await req;
-  if (error) throw error;
+  const { data } = await req;
   return (data ?? []) as unknown as Contrato[];
 }
 
@@ -30,17 +31,27 @@ export default async function ContratosPage({
   searchParams: Promise<{ q?: string; estado?: string }>;
 }) {
   const { q, estado } = await searchParams;
-  const contratos = await getContratos(q, estado);
+  const initialData = await getFirstPage(q, estado);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-8">
+    <main className="max-w-7xl mx-auto px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Contratos públicos</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1
+          className="text-xl font-bold tracking-tight"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Contratos públicos
+        </h1>
+        <p className="text-xs text-muted-foreground mt-1">
           Fuente: Plataforma de Contratación del Sector Público
         </p>
       </div>
-      <ContratosTable contratos={contratos} />
+      <ContratosTable
+        initialData={initialData}
+        initialCursor={PAGE_SIZE}
+        initialQ={q ?? ""}
+        initialEstado={estado ?? ""}
+      />
     </main>
   );
 }
