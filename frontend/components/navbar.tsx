@@ -37,6 +37,12 @@ export function Navbar() {
           >
             Órganos
           </Link>
+          <Link
+            href="/subvenciones"
+            className="text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-md hover:bg-accent transition-colors tracking-wide"
+          >
+            Subvenciones
+          </Link>
           <a
             href="https://github.com/jv3ga/transparencia-kroppet"
             target="_blank"

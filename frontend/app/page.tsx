@@ -8,18 +8,21 @@ async function getStats() {
     { count: total },
     { count: empresas },
     { count: organos },
+    { count: subvenciones },
     { data: volData },
   ] = await Promise.all([
     supabase.from("contratos").select("*", { count: "exact", head: true }),
     supabase.from("empresas").select("*", { count: "exact", head: true }),
     supabase.from("organos").select("*", { count: "exact", head: true }),
+    supabase.from("subvenciones").select("*", { count: "exact", head: true }),
     supabase.rpc("sum_importe_contratos"),
   ]);
   return {
-    total:   total   ?? 0,
-    empresas: empresas ?? 0,
-    organos:  organos  ?? 0,
-    volumen:  (volData as unknown as number) ?? 0,
+    total:        total        ?? 0,
+    empresas:     empresas     ?? 0,
+    organos:      organos      ?? 0,
+    subvenciones: subvenciones ?? 0,
+    volumen:      (volData as unknown as number) ?? 0,
   };
 }
 
@@ -66,10 +69,11 @@ export default async function HomePage() {
         <SectionHeader label="En la base de datos" />
         <div className="flex flex-wrap gap-3">
           {[
-            { v: fmtNum(stats.total),    label: "contratos indexados", href: "/contratos" },
-            { v: fmtNum(stats.empresas), label: "empresas adjudicatarias", href: "/empresas" },
-            { v: fmtNum(stats.organos),  label: "órganos contratantes", href: "/organos" },
-            { v: fmtNum(stats.volumen),  label: "volumen adjudicado", href: null },
+            { v: fmtNum(stats.total),        label: "contratos indexados",     href: "/contratos" },
+            { v: fmtNum(stats.empresas),     label: "empresas adjudicatarias", href: "/empresas" },
+            { v: fmtNum(stats.organos),      label: "órganos contratantes",    href: "/organos" },
+            { v: fmtNum(stats.subvenciones), label: "subvenciones",            href: "/subvenciones" },
+            { v: fmtNum(stats.volumen),      label: "volumen adjudicado",      href: null },
           ].map(({ v, label, href }) => {
             const inner = (
               <>
@@ -110,7 +114,7 @@ export default async function HomePage() {
               title: "Subvenciones",
               desc: "Qué entidades —empresas, ONGs, partidos— reciben subvenciones públicas y de qué ministerios.",
               href: "/subvenciones",
-              live: false,
+              live: true,
             },
             {
               title: "Sueldos de altos cargos",

@@ -20,7 +20,7 @@ from lxml import etree
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"), override=True)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
@@ -77,12 +77,33 @@ PROCEDIMIENTO = {
 
 
 # ---------------------------------------------------------------------------
-# Supabase
+# Supabase — cliente con retry ante cierre HTTP/2 (~10k streams)
 # ---------------------------------------------------------------------------
+_sb: Client | None = None
+
 def get_supabase() -> Client:
+    global _sb
     url = os.environ["SUPABASE_URL"]
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ["SUPABASE_SERVICE_KEY"]
-    return create_client(url, key)
+    _sb = create_client(url, key)
+    return _sb
+
+def _retry(fn, retries: int = 3):
+    """Ejecuta fn(); si cae por ConnectionTerminated recrea el cliente y reintenta."""
+    import httpx
+    global _sb
+    for attempt in range(retries):
+        try:
+            return fn()
+        except (httpx.RemoteProtocolError, httpx.ReadError):
+            if attempt == retries - 1:
+                raise
+            log.warning("HTTP/2 connection terminated, recreating client (attempt %d)", attempt + 1)
+            _sb = get_supabase()
+
+# Cachés en memoria para reducir upserts repetidos (~80% de organos/empresas se repiten)
+_organo_cache: dict[str, int] = {}
+_empresa_cache: dict[str, int] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -193,30 +214,36 @@ def parse_entry(entry: etree._Element) -> dict | None:
 def upsert_organo(sb: Client, codigo: str, nombre: str) -> int | None:
     if not codigo or not nombre:
         return None
-    res = (
-        sb.table("organos")
-        .upsert({"codigo": codigo, "nombre": nombre}, on_conflict="codigo")
-        .execute()
-    )
-    return res.data[0]["id"] if res.data else None
+    if codigo in _organo_cache:
+        return _organo_cache[codigo]
+    res = _retry(lambda: sb.table("organos")
+                           .upsert({"codigo": codigo, "nombre": nombre}, on_conflict="codigo")
+                           .execute())
+    oid = res.data[0]["id"] if res.data else None
+    if oid:
+        _organo_cache[codigo] = oid
+    return oid
 
 
 def upsert_empresa(sb: Client, nif: str, nombre: str) -> int | None:
     if not nif or not nombre:
         return None
-    res = (
-        sb.table("empresas")
-        .upsert({"nif": nif, "nombre": nombre}, on_conflict="nif")
-        .execute()
-    )
-    return res.data[0]["id"] if res.data else None
+    if nif in _empresa_cache:
+        return _empresa_cache[nif]
+    res = _retry(lambda: sb.table("empresas")
+                           .upsert({"nif": nif, "nombre": nombre}, on_conflict="nif")
+                           .execute())
+    eid = res.data[0]["id"] if res.data else None
+    if eid:
+        _empresa_cache[nif] = eid
+    return eid
 
 
 def upsert_contrato(sb: Client, row: dict) -> None:
     if row.get("expediente"):
-        sb.table("contratos").upsert(row, on_conflict="expediente").execute()
+        _retry(lambda: sb.table("contratos").upsert(row, on_conflict="expediente").execute())
     else:
-        sb.table("contratos").insert(row).execute()
+        _retry(lambda: sb.table("contratos").insert(row).execute())
 
 
 # ---------------------------------------------------------------------------
@@ -263,8 +290,8 @@ def ingest(max_pages: int | None = 5) -> None:
                 skipped += 1
                 continue
 
-            organo_id  = upsert_organo(sb, parsed["organo_codigo"], parsed["organo_nombre"])
-            empresa_id = upsert_empresa(sb, parsed["empresa_nif"], parsed["empresa_nombre"])
+            organo_id  = upsert_organo(_sb, parsed["organo_codigo"], parsed["organo_nombre"])
+            empresa_id = upsert_empresa(_sb, parsed["empresa_nif"], parsed["empresa_nombre"])
 
             contrato = {
                 "expediente":         parsed["expediente"],
@@ -281,7 +308,7 @@ def ingest(max_pages: int | None = 5) -> None:
                 "url_fuente":         parsed["url_fuente"],
                 "raw_data":           json.dumps({"xml": parsed["raw_data"]}),
             }
-            upsert_contrato(sb, contrato)
+            upsert_contrato(_sb, contrato)
             total += 1
 
         log.info("Insertados: %d | Saltados: %d", total, skipped)
