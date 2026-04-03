@@ -1,39 +1,7 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { StatsSection } from "@/components/stats-section";
 
-export const revalidate = 3600;
-
-async function getStats() {
-  const [
-    { count: total },
-    { count: empresas },
-    { count: organos },
-    { count: subvenciones },
-    { data: volData },
-  ] = await Promise.all([
-    supabase.from("contratos").select("*", { count: "exact", head: true }),
-    supabase.from("empresas").select("*", { count: "exact", head: true }),
-    supabase.from("organos").select("*", { count: "exact", head: true }),
-    supabase.from("subvenciones").select("*", { count: "exact", head: true }),
-    supabase.rpc("sum_importe_contratos"),
-  ]);
-  return {
-    total:        total        ?? 0,
-    empresas:     empresas     ?? 0,
-    organos:      organos      ?? 0,
-    subvenciones: subvenciones ?? 0,
-    volumen:      (volData as unknown as number) ?? 0,
-  };
-}
-
-function fmtNum(n: number) {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace(".", ",")} B€`;
-  if (n >= 1_000_000)     return `${(n / 1_000_000).toFixed(1).replace(".", ",")} M€`;
-  return n.toLocaleString("es-ES");
-}
-
-export default async function HomePage() {
-  const stats = await getStats();
+export default function HomePage() {
 
   return (
     <main className="max-w-4xl mx-auto px-5 py-12 space-y-16">
@@ -67,36 +35,7 @@ export default async function HomePage() {
       {/* Stats */}
       <section>
         <SectionHeader label="En nuestra base de datos" />
-        <div className="flex flex-wrap gap-3">
-          {[
-            { v: fmtNum(stats.total),        label: "contratos indexados",     href: "/contratos" },
-            { v: fmtNum(stats.empresas),     label: "empresas adjudicatarias", href: "/empresas" },
-            { v: fmtNum(stats.organos),      label: "órganos contratantes",    href: "/organos" },
-            { v: fmtNum(stats.subvenciones), label: "subvenciones",            href: "/subvenciones" },
-            { v: fmtNum(stats.volumen),      label: "volumen adjudicado",      href: null },
-          ].map(({ v, label, href }) => {
-            const inner = (
-              <>
-                <span className="text-primary font-bold text-sm tabnum"
-                      style={{ fontFamily: "var(--font-mono)" }}>
-                  {v}
-                </span>
-                <span className="text-muted-foreground text-xs">{label}</span>
-              </>
-            );
-            return href ? (
-              <Link key={label} href={href}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors">
-                {inner}
-              </Link>
-            ) : (
-              <div key={label}
-                   className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded-lg">
-                {inner}
-              </div>
-            );
-          })}
-        </div>
+        <StatsSection />
       </section>
 
       {/* Módulos */}

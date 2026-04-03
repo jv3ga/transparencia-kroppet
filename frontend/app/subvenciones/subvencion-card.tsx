@@ -1,7 +1,7 @@
-const NIVEL1_COLORS: Record<string, string> = {
-  "ESTATAL":    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  "AUTONÓMICA": "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-  "LOCAL":      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+const NIVEL1_META: Record<string, { label: string; color: string }> = {
+  "ESTADO":    { label: "Estatal",    color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
+  "AUTONOMICA":{ label: "Autonómica", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" },
+  "LOCAL":     { label: "Local",      color: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" },
 };
 
 function fmtEuros(n: number | null) {
@@ -28,7 +28,7 @@ type Subvencion = {
 };
 
 export function SubvencionCard({ s }: { s: Subvencion }) {
-  const nivel1Color = NIVEL1_COLORS[s.nivel1 ?? ""] ?? "bg-muted text-muted-foreground";
+  const nivel1 = NIVEL1_META[s.nivel1 ?? ""] ?? { label: s.nivel1 ?? "", color: "bg-muted text-muted-foreground" };
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-2">
@@ -37,8 +37,8 @@ export function SubvencionCard({ s }: { s: Subvencion }) {
           {s.beneficiario ?? "—"}
         </p>
         {s.nivel1 && (
-          <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${nivel1Color}`}>
-            {s.nivel1}
+          <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${nivel1.color}`}>
+            {nivel1.label}
           </span>
         )}
       </div>
