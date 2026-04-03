@@ -196,8 +196,53 @@ export default function SubvencionesTable({
         </span>
       </div>
 
-      {/* Tabla */}
-      <div className="rounded-xl border border-border overflow-x-auto">
+      {/* Cards mobile */}
+      <div className="md:hidden flex flex-col gap-2">
+        {rows.length === 0 && !loading && (
+          <p className="text-center py-12 text-muted-foreground text-sm">Sin resultados</p>
+        )}
+        {rows.map(s => {
+          const nivel1Color = NIVEL1_COLORS[s.nivel1 ?? ""] ?? "bg-muted text-muted-foreground";
+          return (
+            <div key={s.id} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-medium leading-snug line-clamp-2 flex-1">
+                  {s.beneficiario ?? "—"}
+                </p>
+                {s.nivel1 && (
+                  <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${nivel1Color}`}>
+                    {s.nivel1}
+                  </span>
+                )}
+              </div>
+              {s.convocatoria && (
+                <p className="text-xs text-muted-foreground line-clamp-2">{s.convocatoria}</p>
+              )}
+              {s.nivel3 && (
+                <p className="text-xs text-muted-foreground/60 line-clamp-1">{s.nivel3}</p>
+              )}
+              <div className="flex items-end justify-between gap-2 pt-1 border-t border-border/50">
+                <p className="text-xs text-muted-foreground line-clamp-1 flex-1">
+                  {s.instrumento ?? "—"}
+                </p>
+                <div className="text-right shrink-0">
+                  <p className="tabnum text-sm font-semibold text-primary"
+                     style={{ fontFamily: "var(--font-mono)" }}>
+                    {fmtEuros(s.importe)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground tabnum"
+                     style={{ fontFamily: "var(--font-mono)" }}>
+                    {fmtDate(s.fecha_concesion)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tabla desktop */}
+      <div className="hidden md:block rounded-xl border border-border overflow-x-auto">
         <Table className="table-fixed w-full">
           <colgroup>
             <col className="w-[28%]" />

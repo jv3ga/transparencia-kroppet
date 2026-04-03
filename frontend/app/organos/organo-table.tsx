@@ -90,7 +90,45 @@ export default function OrganoTable({ initialData, initialCursor, initialQ }: Pr
         </span>
       </div>
 
-      <div className="rounded-xl border border-border overflow-x-auto">
+      {/* Cards mobile */}
+      <div className="md:hidden flex flex-col gap-2">
+        {rows.length === 0 && !loading && (
+          <p className="text-center py-12 text-muted-foreground text-sm">Sin resultados</p>
+        )}
+        {rows.map((o, i) => (
+          <div key={o.id} className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+            <span className="text-xs text-muted-foreground tabnum w-6 text-right shrink-0"
+                  style={{ fontFamily: "var(--font-mono)" }}>
+              {i + 1}
+            </span>
+            <div className="flex-1 min-w-0">
+              <Link href={`/contratos?organo_id=${o.id}`}
+                    className="font-medium text-sm hover:text-primary transition-colors line-clamp-2 leading-snug">
+                {o.nombre}
+              </Link>
+              {o.codigo && (
+                <span className="text-xs text-muted-foreground block tabnum mt-0.5"
+                      style={{ fontFamily: "var(--font-mono)" }}>
+                  {o.codigo}
+                </span>
+              )}
+            </div>
+            <div className="text-right shrink-0">
+              <p className="tabnum text-sm font-semibold text-primary"
+                 style={{ fontFamily: "var(--font-mono)" }}>
+                {fmtEuros(o.total_importe)}
+              </p>
+              <p className="text-[10px] text-muted-foreground tabnum"
+                 style={{ fontFamily: "var(--font-mono)" }}>
+                {o.num_contratos.toLocaleString("es-ES")} contratos
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabla desktop */}
+      <div className="hidden md:block rounded-xl border border-border overflow-x-auto">
         <Table className="table-fixed w-full">
           <colgroup>
             <col className="w-[5%]" />

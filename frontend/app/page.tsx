@@ -66,7 +66,7 @@ export default async function HomePage() {
 
       {/* Stats */}
       <section>
-        <SectionHeader label="En la base de datos" />
+        <SectionHeader label="En nuestra base de datos" />
         <div className="flex flex-wrap gap-3">
           {[
             { v: fmtNum(stats.total),        label: "contratos indexados",     href: "/contratos" },

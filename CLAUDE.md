@@ -81,6 +81,10 @@ if (fixedOrganoId.current)  params.set("organo_id",  fixedOrganoId.current);
 - Usar vistas PostgreSQL (`empresa_ranking`, `organo_ranking`) con COUNT + SUM agrupados
 - El link de cada fila apunta a `/contratos?empresa_id=X` o `/contratos?organo_id=X`
 
+## Deploy en Vercel
+
+**NUNCA hacer deploy automáticamente.** El deploy a Vercel solo se ejecuta cuando el usuario lo pide explícitamente, o cuando yo considero que es buen momento, en cuyo caso debo preguntar antes de hacerlo. El comando es `vercel --prod` desde `frontend/`.
+
 ## Supabase — Consideraciones
 
 - **Límite por defecto de PostgREST**: 1000 filas. Para contadores usar `{ count: "exact", head: true }` — nunca `data.length`

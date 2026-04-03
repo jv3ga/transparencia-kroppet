@@ -242,8 +242,65 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
         </span>
       </div>
 
-      {/* Tabla */}
-      <div className="rounded-xl border border-border overflow-x-auto">
+      {/* Cards mobile */}
+      <div className="md:hidden flex flex-col gap-2">
+        {rows.length === 0 && !loading && (
+          <p className="text-center py-12 text-muted-foreground text-sm">Sin resultados</p>
+        )}
+        {rows.map(c => {
+          const est = ESTADO_LABEL[c.estado ?? ""] ?? { label: c.estado ?? "—", color: "bg-muted text-muted-foreground" };
+          return (
+            <div key={c.id} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  {c.url_fuente ? (
+                    <a href={c.url_fuente} target="_blank" rel="noopener noreferrer"
+                       className="text-primary hover:underline underline-offset-2 text-sm font-medium line-clamp-3 leading-snug">
+                      {c.objeto}
+                    </a>
+                  ) : (
+                    <span className="text-sm font-medium line-clamp-3 leading-snug">{c.objeto}</span>
+                  )}
+                </div>
+                <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide ${est.color}`}>
+                  {est.label}
+                </span>
+              </div>
+              {c.organos?.nombre && (
+                <p className="text-xs text-muted-foreground line-clamp-1">{c.organos.nombre}</p>
+              )}
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/50">
+                <div className="min-w-0">
+                  {c.empresas?.nombre ? (
+                    <p className="text-xs line-clamp-1 font-medium">{c.empresas.nombre}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Sin empresa adjudicataria</p>
+                  )}
+                  {c.expediente && (
+                    <p className="text-[10px] text-muted-foreground tabnum mt-0.5"
+                       style={{ fontFamily: "var(--font-mono)" }}>
+                      {c.expediente}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="tabnum text-sm font-semibold text-primary"
+                     style={{ fontFamily: "var(--font-mono)" }}>
+                    {fmtEuros(c.importe_sin_iva)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground tabnum"
+                     style={{ fontFamily: "var(--font-mono)" }}>
+                    {fmtDate(c.fecha_adjudicacion ?? c.fecha_publicacion)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tabla desktop */}
+      <div className="hidden md:block rounded-xl border border-border overflow-x-auto">
         <Table className="table-fixed w-full">
           <colgroup>
             <col className="w-[35%]" />
