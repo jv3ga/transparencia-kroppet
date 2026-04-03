@@ -25,6 +25,12 @@ export function Navbar() {
           >
             Contratos
           </Link>
+          <Link
+            href="/empresas"
+            className="text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-md hover:bg-accent transition-colors tracking-wide"
+          >
+            Empresas
+          </Link>
           <a
             href="https://github.com/jv3ga/transparencia-kroppet"
             target="_blank"

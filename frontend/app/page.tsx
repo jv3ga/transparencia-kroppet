@@ -4,16 +4,23 @@ import { supabase } from "@/lib/supabase";
 export const revalidate = 3600;
 
 async function getStats() {
-  const { data } = await supabase
-    .from("contratos")
-    .select("importe_sin_iva, empresa_id, organo_id");
-
-  if (!data) return { total: 0, empresas: 0, organos: 0, volumen: 0 };
-
-  const empresas = new Set(data.map((r) => r.empresa_id).filter(Boolean)).size;
-  const organos  = new Set(data.map((r) => r.organo_id).filter(Boolean)).size;
-  const volumen  = data.reduce((s, r) => s + (r.importe_sin_iva ?? 0), 0);
-  return { total: data.length, empresas, organos, volumen };
+  const [
+    { count: total },
+    { count: empresas },
+    { count: organos },
+    { data: volData },
+  ] = await Promise.all([
+    supabase.from("contratos").select("*", { count: "exact", head: true }),
+    supabase.from("empresas").select("*", { count: "exact", head: true }),
+    supabase.from("organos").select("*", { count: "exact", head: true }),
+    supabase.rpc("sum_importe_contratos"),
+  ]);
+  return {
+    total:   total   ?? 0,
+    empresas: empresas ?? 0,
+    organos:  organos  ?? 0,
+    volumen:  (volData as unknown as number) ?? 0,
+  };
 }
 
 function fmtNum(n: number) {
@@ -59,20 +66,32 @@ export default async function HomePage() {
         <SectionHeader label="En la base de datos" />
         <div className="flex flex-wrap gap-3">
           {[
-            { v: fmtNum(stats.total),    label: "contratos indexados" },
-            { v: fmtNum(stats.empresas), label: "empresas adjudicatarias" },
-            { v: fmtNum(stats.organos),  label: "órganos contratantes" },
-            { v: fmtNum(stats.volumen),  label: "volumen adjudicado" },
-          ].map(({ v, label }) => (
-            <div key={label}
-                 className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded-lg">
-              <span className="text-primary font-bold text-sm tabnum"
-                    style={{ fontFamily: "var(--font-mono)" }}>
-                {v}
-              </span>
-              <span className="text-muted-foreground text-xs">{label}</span>
-            </div>
-          ))}
+            { v: fmtNum(stats.total),    label: "contratos indexados", href: "/contratos" },
+            { v: fmtNum(stats.empresas), label: "empresas adjudicatarias", href: "/empresas" },
+            { v: fmtNum(stats.organos),  label: "órganos contratantes", href: null },
+            { v: fmtNum(stats.volumen),  label: "volumen adjudicado", href: null },
+          ].map(({ v, label, href }) => {
+            const inner = (
+              <>
+                <span className="text-primary font-bold text-sm tabnum"
+                      style={{ fontFamily: "var(--font-mono)" }}>
+                  {v}
+                </span>
+                <span className="text-muted-foreground text-xs">{label}</span>
+              </>
+            );
+            return href ? (
+              <Link key={label} href={href}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors">
+                {inner}
+              </Link>
+            ) : (
+              <div key={label}
+                   className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded-lg">
+                {inner}
+              </div>
+            );
+          })}
         </div>
       </section>
 
