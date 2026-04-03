@@ -7,6 +7,7 @@ import {
   TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
+import { RankingCard } from "@/components/ui/ranking-card";
 
 type OrganoRow = {
   id: number;
@@ -96,34 +97,9 @@ export default function OrganoTable({ initialData, initialCursor, initialQ }: Pr
           <p className="text-center py-12 text-muted-foreground text-sm">Sin resultados</p>
         )}
         {rows.map((o, i) => (
-          <div key={o.id} className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
-            <span className="text-xs text-muted-foreground tabnum w-6 text-right shrink-0"
-                  style={{ fontFamily: "var(--font-mono)" }}>
-              {i + 1}
-            </span>
-            <div className="flex-1 min-w-0">
-              <Link href={`/contratos?organo_id=${o.id}`}
-                    className="font-medium text-sm hover:text-primary transition-colors line-clamp-2 leading-snug">
-                {o.nombre}
-              </Link>
-              {o.codigo && (
-                <span className="text-xs text-muted-foreground block tabnum mt-0.5"
-                      style={{ fontFamily: "var(--font-mono)" }}>
-                  {o.codigo}
-                </span>
-              )}
-            </div>
-            <div className="text-right shrink-0">
-              <p className="tabnum text-sm font-semibold text-primary"
-                 style={{ fontFamily: "var(--font-mono)" }}>
-                {fmtEuros(o.total_importe)}
-              </p>
-              <p className="text-[10px] text-muted-foreground tabnum"
-                 style={{ fontFamily: "var(--font-mono)" }}>
-                {o.num_contratos.toLocaleString("es-ES")} contratos
-              </p>
-            </div>
-          </div>
+          <RankingCard key={o.id} rank={i + 1} nombre={o.nombre} subtitulo={o.codigo}
+                       href={`/contratos?organo_id=${o.id}`}
+                       numContratos={o.num_contratos} totalImporte={o.total_importe} />
         ))}
       </div>
 
