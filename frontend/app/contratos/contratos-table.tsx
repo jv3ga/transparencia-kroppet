@@ -12,6 +12,7 @@ import {
   TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import type { Contrato } from "@/lib/supabase";
+import { TIPOS_CONTRATO, ANIOS } from "@/lib/constants";
 
 const ESTADO_LABEL: Record<string, { label: string; color: string }> = {
   PUB: { label: "Publicado",     color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
@@ -31,6 +32,16 @@ function fmtDate(s: string | null) {
   return new Date(s).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+type Organo = { id: number; nombre: string };
+
+type Filters = {
+  q: string;
+  estado: string;
+  organo_id: string;
+  tipo: string;
+  anio: string;
+};
+
 type Props = {
   initialData: Contrato[];
   initialCursor: number;
@@ -45,40 +56,65 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
   const [rows, setRows]           = useState<Contrato[]>(initialData);
   const [cursor, setCursor]       = useState<number | null>(initialCursor);
   const [loading, setLoading]     = useState(false);
-  const [search, setSearch]       = useState(initialQ);
-  const [estado, setEstado]       = useState(initialEstado || "todos");
-  const searchTimeout             = useRef<ReturnType<typeof setTimeout>>(null);
-  const sentinelRef               = useRef<HTMLDivElement>(null);
-  // Track current filter to reset on change
-  const activeQ      = useRef(initialQ);
-  const activeEstado = useRef(initialEstado);
+  const [organos, setOrganos]     = useState<Organo[]>([]);
+  const [organoSearch, setOrganoSearch] = useState("");
 
-  // Fetch a page from the API
-  const fetchPage = useCallback(async (q: string, est: string, cur: number, replace: boolean) => {
+  const [filters, setFilters] = useState<Filters>({
+    q:         initialQ,
+    estado:    initialEstado || "",
+    organo_id: "",
+    tipo:      "",
+    anio:      "",
+  });
+
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+  const sentinelRef   = useRef<HTMLDivElement>(null);
+  const activeFilters = useRef<Filters>(filters);
+
+  useEffect(() => {
+    fetch("/api/organos").then(r => r.json()).then(setOrganos).catch(() => {});
+  }, []);
+
+  const fetchPage = useCallback(async (f: Filters, cur: number, replace: boolean) => {
     setLoading(true);
     const params = new URLSearchParams({ cursor: String(cur) });
-    if (q)                  params.set("q", q);
-    if (est && est !== "todos") params.set("estado", est);
+    if (f.q)         params.set("q", f.q);
+    if (f.estado)    params.set("estado", f.estado);
+    if (f.organo_id) params.set("organo_id", f.organo_id);
+    if (f.tipo)      params.set("tipo", f.tipo);
+    if (f.anio)      params.set("anio", f.anio);
 
     const res  = await fetch(`/api/contratos?${params}`);
     const json = await res.json();
     setRows(prev => {
-      const merged = replace ? json.data : [...prev, ...json.data];
+      const merged = replace ? (json.data ?? []) : [...prev, ...(json.data ?? [])];
       const seen = new Set<number>();
       return merged.filter((r: { id: number }) => seen.has(r.id) ? false : (seen.add(r.id), true));
     });
-    setCursor(json.nextCursor);
+    setCursor(json.nextCursor ?? null);
     setLoading(false);
   }, []);
 
-  // Intersection observer → load next page
+  function applyFilter(patch: Partial<Filters>) {
+    const next = { ...activeFilters.current, ...patch };
+    activeFilters.current = next;
+    setFilters(next);
+    startTransition(() => {
+      const p = new URLSearchParams();
+      if (next.q)      p.set("q", next.q);
+      if (next.estado) p.set("estado", next.estado);
+      router.replace(`?${p.toString()}`, { scroll: false });
+    });
+    fetchPage(next, 0, true);
+  }
+
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && cursor !== null && !loading) {
-          fetchPage(activeQ.current, activeEstado.current, cursor, false);
+          fetchPage(activeFilters.current, cursor, false);
         }
       },
       { rootMargin: "200px" }
@@ -87,57 +123,112 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
     return () => obs.disconnect();
   }, [cursor, loading, fetchPage]);
 
-  // Search with debounce
   function handleSearch(val: string) {
-    setSearch(val);
+    setFilters(f => ({ ...f, q: val }));
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      activeQ.current = val;
-      startTransition(() => {
-        const p = new URLSearchParams();
-        if (val) p.set("q", val);
-        if (activeEstado.current && activeEstado.current !== "todos") p.set("estado", activeEstado.current);
-        router.replace(`?${p.toString()}`, { scroll: false });
-      });
-      fetchPage(val, activeEstado.current, 0, true);
-    }, 350);
+    searchTimeout.current = setTimeout(() => applyFilter({ q: val }), 350);
   }
 
-  function handleEstado(val: string | null) {
-    if (!val) return;
-    setEstado(val);
-    activeEstado.current = val;
-    startTransition(() => {
-      const p = new URLSearchParams();
-      if (activeQ.current) p.set("q", activeQ.current);
-      if (val && val !== "todos") p.set("estado", val);
-      router.replace(`?${p.toString()}`, { scroll: false });
-    });
-    fetchPage(activeQ.current, val, 0, true);
-  }
+  const activeCount = [filters.estado, filters.organo_id, filters.tipo, filters.anio].filter(Boolean).length;
+  const organosFiltrados = organos.filter(o =>
+    o.nombre.toLowerCase().includes(organoSearch.toLowerCase())
+  );
 
   return (
     <div className="space-y-4">
       {/* Filtros */}
       <div className="flex gap-3 flex-wrap items-center">
         <Input
-          placeholder="Buscar por objeto, empresa u órgano…"
-          value={search}
+          placeholder="Buscar por objeto…"
+          value={filters.q}
           onChange={e => handleSearch(e.target.value)}
-          className="max-w-sm"
+          className="max-w-xs"
         />
-        <Select value={estado} onValueChange={handleEstado}>
-          <SelectTrigger className="w-44">
+
+        {/* Órgano */}
+        <Select
+          value={filters.organo_id || undefined}
+          onValueChange={val => applyFilter({ organo_id: val ?? "" })}
+        >
+          <SelectTrigger className={`w-52 ${filters.organo_id ? "border-primary text-primary" : ""}`}>
+            <SelectValue placeholder="Órgano contratante" />
+          </SelectTrigger>
+          <SelectContent>
+            <div className="p-2">
+              <Input
+                placeholder="Buscar órgano…"
+                value={organoSearch}
+                onChange={e => setOrganoSearch(e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+            {filters.organo_id && (
+              <SelectItem value="">Todos los órganos</SelectItem>
+            )}
+            {organosFiltrados.slice(0, 100).map(o => (
+              <SelectItem key={o.id} value={String(o.id)}>{o.nombre}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Tipo */}
+        <Select
+          value={filters.tipo || undefined}
+          onValueChange={val => applyFilter({ tipo: val ?? "" })}
+        >
+          <SelectTrigger className={`w-44 ${filters.tipo ? "border-primary text-primary" : ""}`}>
+            <SelectValue placeholder="Tipo contrato" />
+          </SelectTrigger>
+          <SelectContent>
+            {filters.tipo && <SelectItem value="">Todos los tipos</SelectItem>}
+            {Object.entries(TIPOS_CONTRATO).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Año */}
+        <Select
+          value={filters.anio || undefined}
+          onValueChange={val => applyFilter({ anio: val ?? "" })}
+        >
+          <SelectTrigger className={`w-28 ${filters.anio ? "border-primary text-primary" : ""}`}>
+            <SelectValue placeholder="Año" />
+          </SelectTrigger>
+          <SelectContent>
+            {filters.anio && <SelectItem value="">Todos</SelectItem>}
+            {ANIOS.map(a => (
+              <SelectItem key={a} value={a}>{a}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Estado */}
+        <Select
+          value={filters.estado || undefined}
+          onValueChange={val => applyFilter({ estado: val ?? "" })}
+        >
+          <SelectTrigger className={`w-44 ${filters.estado ? "border-primary text-primary" : ""}`}>
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos los estados</SelectItem>
+            {filters.estado && <SelectItem value="">Todos los estados</SelectItem>}
             {Object.entries(ESTADO_LABEL).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <span className="text-xs text-muted-foreground tabnum" style={{ fontFamily: "var(--font-mono)" }}>
+
+        {activeCount > 0 && (
+          <button
+            onClick={() => applyFilter({ estado: "", organo_id: "", tipo: "", anio: "" })}
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+          >
+            Limpiar ({activeCount})
+          </button>
+        )}
+
+        <span className="text-xs text-muted-foreground tabnum ml-auto" style={{ fontFamily: "var(--font-mono)" }}>
           {rows.length.toLocaleString("es-ES")} cargados
           {cursor !== null && !loading && " · scroll para más"}
         </span>
@@ -145,12 +236,20 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
 
       {/* Tabla */}
       <div className="rounded-xl border border-border overflow-x-auto">
-        <Table>
+        <Table className="table-fixed w-full">
+          <colgroup>
+            <col className="w-[35%]" />
+            <col className="w-[20%]" />
+            <col className="w-[20%]" />
+            <col className="w-[10%]" />
+            <col className="w-[8%]" />
+            <col className="w-[7%]" />
+          </colgroup>
           <TableHeader>
             <TableRow className="border-border">
-              <TableHead className="min-w-[300px]">Objeto</TableHead>
-              <TableHead className="min-w-[160px]">Órgano</TableHead>
-              <TableHead className="min-w-[160px]">Empresa</TableHead>
+              <TableHead>Objeto</TableHead>
+              <TableHead>Órgano</TableHead>
+              <TableHead>Empresa</TableHead>
               <TableHead className="text-right whitespace-nowrap">Importe</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="whitespace-nowrap">Fecha</TableHead>
@@ -184,7 +283,7 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[180px] py-3">
+                  <TableCell className="text-xs text-muted-foreground py-3 overflow-hidden">
                     <span className="line-clamp-2">{c.organos?.nombre ?? "—"}</span>
                   </TableCell>
                   <TableCell className="text-xs max-w-[180px] py-3">
