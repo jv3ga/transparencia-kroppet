@@ -128,32 +128,34 @@ export default async function HomePage() {
               href: "/presupuesto",
               live: false,
             },
-          ].map((m) => (
-            <div key={m.title}
-                 className="bg-card border border-border rounded-xl p-5 flex flex-col gap-2 hover:border-muted-foreground/30 transition-colors">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>
-                  {m.title}
-                </h3>
-                {m.live ? (
+          ].map((m) => m.live ? (
+              <Link key={m.title} href={m.href}
+                    className="bg-card border border-border rounded-xl p-5 flex flex-col gap-2 hover:border-primary/50 hover:bg-accent/30 transition-colors">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+                    {m.title}
+                  </h3>
                   <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium uppercase tracking-wider">
                     Live
                   </span>
-                ) : (
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{m.desc}</p>
+                <span className="text-xs text-primary mt-auto pt-1">Explorar →</span>
+              </Link>
+            ) : (
+              <div key={m.title}
+                   className="bg-card border border-border rounded-xl p-5 flex flex-col gap-2 opacity-60">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>
+                    {m.title}
+                  </h3>
                   <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full uppercase tracking-wider">
                     Pronto
                   </span>
-                )}
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{m.desc}</p>
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">{m.desc}</p>
-              {m.live && (
-                <Link href={m.href}
-                      className="text-xs text-primary hover:underline underline-offset-2 mt-auto pt-1 w-fit">
-                  Explorar →
-                </Link>
-              )}
-            </div>
-          ))}
+            ))}
         </div>
       </section>
 
