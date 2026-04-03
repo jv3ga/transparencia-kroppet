@@ -48,9 +48,10 @@ type Props = {
   initialQ: string;
   initialEstado: string;
   initialEmpresaId?: string;
+  initialOrganoId?: string;
 };
 
-export default function ContratosTable({ initialData, initialCursor, initialQ, initialEstado, initialEmpresaId = "" }: Props) {
+export default function ContratosTable({ initialData, initialCursor, initialQ, initialEstado, initialEmpresaId = "", initialOrganoId = "" }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -68,8 +69,9 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
     anio:      "",
   });
 
-  // empresa_id viene de la URL (desde página de empresas) — se aplica silenciosamente
+  // empresa_id y organo_id vienen de la URL — se aplican silenciosamente
   const fixedEmpresaId = useRef(initialEmpresaId);
+  const fixedOrganoId  = useRef(initialOrganoId);
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
   const sentinelRef   = useRef<HTMLDivElement>(null);
@@ -87,7 +89,8 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
     if (f.organo_id)                params.set("organo_id", f.organo_id);
     if (f.tipo)                     params.set("tipo", f.tipo);
     if (f.anio)                     params.set("anio", f.anio);
-    if (fixedEmpresaId.current)     params.set("empresa_id", fixedEmpresaId.current);
+    if (fixedEmpresaId.current) params.set("empresa_id", fixedEmpresaId.current);
+    if (fixedOrganoId.current)  params.set("organo_id",  fixedOrganoId.current);
 
     const res  = await fetch(`/api/contratos?${params}`);
     const json = await res.json();

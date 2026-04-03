@@ -68,7 +68,7 @@ export default async function HomePage() {
           {[
             { v: fmtNum(stats.total),    label: "contratos indexados", href: "/contratos" },
             { v: fmtNum(stats.empresas), label: "empresas adjudicatarias", href: "/empresas" },
-            { v: fmtNum(stats.organos),  label: "órganos contratantes", href: null },
+            { v: fmtNum(stats.organos),  label: "órganos contratantes", href: "/organos" },
             { v: fmtNum(stats.volumen),  label: "volumen adjudicado", href: null },
           ].map(({ v, label, href }) => {
             const inner = (

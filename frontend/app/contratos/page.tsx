@@ -5,7 +5,9 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
-async function getFirstPage(q?: string, estado?: string, empresa_id?: string): Promise<Contrato[]> {
+async function getFirstPage(
+  q?: string, estado?: string, empresa_id?: string, organo_id?: string
+): Promise<Contrato[]> {
   let req = supabase
     .from("contratos")
     .select(`
@@ -22,6 +24,7 @@ async function getFirstPage(q?: string, estado?: string, empresa_id?: string): P
   if (q)          req = req.ilike("objeto", `%${q}%`);
   if (estado)     req = req.eq("estado", estado);
   if (empresa_id) req = req.eq("empresa_id", parseInt(empresa_id, 10));
+  if (organo_id)  req = req.eq("organo_id",  parseInt(organo_id,  10));
 
   const { data } = await req;
   return (data ?? []) as unknown as Contrato[];
@@ -30,10 +33,10 @@ async function getFirstPage(q?: string, estado?: string, empresa_id?: string): P
 export default async function ContratosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; estado?: string; empresa_id?: string }>;
+  searchParams: Promise<{ q?: string; estado?: string; empresa_id?: string; organo_id?: string }>;
 }) {
-  const { q, estado, empresa_id } = await searchParams;
-  const initialData = await getFirstPage(q, estado, empresa_id);
+  const { q, estado, empresa_id, organo_id } = await searchParams;
+  const initialData = await getFirstPage(q, estado, empresa_id, organo_id);
 
   return (
     <main className="max-w-7xl mx-auto px-5 py-8">
@@ -54,6 +57,7 @@ export default async function ContratosPage({
         initialQ={q ?? ""}
         initialEstado={estado ?? ""}
         initialEmpresaId={empresa_id ?? ""}
+        initialOrganoId={organo_id ?? ""}
       />
     </main>
   );
