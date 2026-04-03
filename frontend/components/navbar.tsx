@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ThemeToggle } from "./theme-toggle";
 import { MobileNav } from "./mobile-nav";
+import { KroppetIcon } from "./ui/kroppet-icon";
 
 export function Navbar() {
   return (
@@ -9,14 +9,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-5 h-13 flex items-center justify-between relative">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <Image
-            src="/icon.png"
-            alt="Kroppet"
-            width={28}
-            height={28}
-            className="rounded-md"
-            priority
-          />
+          <KroppetIcon className="w-7 h-7" />
           <span
             className="text-primary font-bold text-xs tracking-widest uppercase group-hover:text-primary/80 transition-colors"
             style={{ fontFamily: "var(--font-display)" }}

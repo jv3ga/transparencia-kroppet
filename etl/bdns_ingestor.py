@@ -42,16 +42,25 @@ def get_supabase() -> Client:
 # ---------------------------------------------------------------------------
 # Fetch
 # ---------------------------------------------------------------------------
-def fetch_page(fecha_desde: str, fecha_hasta: str, page: int) -> dict:
+def fetch_page(fecha_desde: str, fecha_hasta: str, page: int, retries: int = 4) -> dict:
     """Fetcha una página de concesiones BDNS. Fechas en formato dd/mm/yyyy."""
-    resp = requests.get(BASE_URL, params={
-        "page":       page,
-        "pageSize":   PAGE_SIZE,
-        "fechaDesde": fecha_desde,
-        "fechaHasta": fecha_hasta,
-    }, timeout=30, headers={"Accept": "application/json"})
-    resp.raise_for_status()
-    return resp.json()
+    for attempt in range(retries):
+        try:
+            resp = requests.get(BASE_URL, params={
+                "page":       page,
+                "pageSize":   PAGE_SIZE,
+                "fechaDesde": fecha_desde,
+                "fechaHasta": fecha_hasta,
+            }, timeout=90, headers={"Accept": "application/json"})
+            resp.raise_for_status()
+            return resp.json()
+        except requests.ReadTimeout:
+            if attempt == retries - 1:
+                raise
+            wait = 10 * (attempt + 1)
+            log.warning("Timeout en página %d, reintentando en %ds (intento %d/%d)...",
+                        page, wait, attempt + 1, retries)
+            time.sleep(wait)
 
 # ---------------------------------------------------------------------------
 # Transform
@@ -138,6 +147,31 @@ def ingest(fecha_desde: str, fecha_hasta: str) -> None:
 
     log.info("Ingesta BDNS finalizada. Total insertados/actualizados: %d", total_inserted)
 
+
+def ingest_range(fecha_desde_str: str, fecha_hasta_str: str) -> None:
+    """
+    Divide el rango en chunks mensuales y llama a ingest() por cada uno.
+    El API de BDNS devuelve 0 resultados para rangos > ~31 días.
+    """
+    fmt = "%d/%m/%Y"
+    start = datetime.strptime(fecha_desde_str, fmt).date()
+    end   = datetime.strptime(fecha_hasta_str, fmt).date()
+
+    cursor = start
+    while cursor <= end:
+        # Fin del mes actual
+        if cursor.month == 12:
+            month_end = date(cursor.year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = date(cursor.year, cursor.month + 1, 1) - timedelta(days=1)
+        chunk_end = min(month_end, end)
+
+        log.info("=== Chunk: %s → %s ===", cursor.strftime(fmt), chunk_end.strftime(fmt))
+        ingest(cursor.strftime(fmt), chunk_end.strftime(fmt))
+
+        cursor = chunk_end + timedelta(days=1)
+
+
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Ingestor BDNS → Supabase")
@@ -149,12 +183,19 @@ if __name__ == "__main__":
                         help="Fecha fin dd/mm/yyyy (default: hoy)")
     args = parser.parse_args()
 
+    fmt = "%d/%m/%Y"
     if args.desde:
         fecha_desde = args.desde
-        fecha_hasta = args.hasta or date.today().strftime("%d/%m/%Y")
+        fecha_hasta = args.hasta or date.today().strftime(fmt)
     else:
         hoy = date.today()
-        fecha_desde = (hoy - timedelta(days=args.days)).strftime("%d/%m/%Y")
-        fecha_hasta = hoy.strftime("%d/%m/%Y")
+        fecha_desde = (hoy - timedelta(days=args.days)).strftime(fmt)
+        fecha_hasta = hoy.strftime(fmt)
 
-    ingest(fecha_desde, fecha_hasta)
+    # Rangos > 31 días se dividen en chunks mensuales (límite del API BDNS)
+    start = datetime.strptime(fecha_desde, fmt).date()
+    end   = datetime.strptime(fecha_hasta, fmt).date()
+    if (end - start).days > 31:
+        ingest_range(fecha_desde, fecha_hasta)
+    else:
+        ingest(fecha_desde, fecha_hasta)

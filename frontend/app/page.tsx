@@ -163,7 +163,7 @@ export default async function HomePage() {
       <footer className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between gap-3 text-xs text-muted-foreground">
         <p>
           Datos bajo{" "}
-          <a href="https://datos.gob.es/es/licencias" target="_blank" rel="noopener noreferrer"
+          <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2007-19814" target="_blank" rel="noopener noreferrer"
              className="underline underline-offset-2 hover:text-foreground">
             Ley 37/2007
           </a>{" "}
