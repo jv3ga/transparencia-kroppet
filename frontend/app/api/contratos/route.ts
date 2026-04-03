@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
       organos  ( nombre )
     `)
     .order("fecha_publicacion", { ascending: false })
+    .order("id", { ascending: false })
     .range(cursor, cursor + PAGE_SIZE - 1);
 
   if (q)      query = query.ilike("objeto", `%${q}%`);

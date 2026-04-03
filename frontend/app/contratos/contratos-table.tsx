@@ -62,7 +62,11 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
 
     const res  = await fetch(`/api/contratos?${params}`);
     const json = await res.json();
-    setRows(prev => replace ? json.data : [...prev, ...json.data]);
+    setRows(prev => {
+      const merged = replace ? json.data : [...prev, ...json.data];
+      const seen = new Set<number>();
+      return merged.filter((r: { id: number }) => seen.has(r.id) ? false : (seen.add(r.id), true));
+    });
     setCursor(json.nextCursor);
     setLoading(false);
   }, []);
