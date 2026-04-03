@@ -20,7 +20,7 @@ from lxml import etree
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
