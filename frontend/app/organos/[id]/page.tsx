@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase, type Contrato } from "@/lib/supabase";
 import ContratosTable from "@/app/contratos/contratos-table";
-import { ArrowLeft } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { ProfileCharts } from "@/components/profile-charts";
 
 export const dynamic = "force-dynamic";
 
@@ -60,14 +60,11 @@ export default async function OrganoPage({
 
   return (
     <main className="max-w-7xl mx-auto px-5 py-8 space-y-6">
-      {/* Back link */}
-      <Link
-        href="/organos"
-        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        Volver al ranking de órganos
-      </Link>
+      <Breadcrumb items={[
+        { label: "Inicio", href: "/" },
+        { label: "Órganos", href: "/organos" },
+        { label: organo.nombre },
+      ]} />
 
       {/* Header */}
       <div className="space-y-3">
@@ -114,6 +111,9 @@ export default async function OrganoPage({
           </div>
         </div>
       </div>
+
+      {/* Gráficas */}
+      <ProfileCharts entityId={organoId} type="organo" barLabel="Empresas adjudicatarias" />
 
       {/* Contratos */}
       <div>

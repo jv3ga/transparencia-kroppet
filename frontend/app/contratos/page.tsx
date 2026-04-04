@@ -1,5 +1,6 @@
 import { supabase, type Contrato } from "@/lib/supabase";
 import ContratosTable from "./contratos-table";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -43,14 +44,15 @@ export default async function ContratosPage({
 
   return (
     <main className="max-w-7xl mx-auto px-5 py-8">
-      <div className="mb-6">
+      <div className="mb-6 space-y-2">
+        <Breadcrumb items={[{ label: "Inicio", href: "/" }, { label: "Contratos" }]} />
         <h1
           className="text-xl font-bold tracking-tight"
           style={{ fontFamily: "var(--font-display)" }}
         >
           Contratos públicos
         </h1>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground">
           Fuente: Plataforma de Contratación del Sector Público
         </p>
       </div>

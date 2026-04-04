@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase, type Contrato } from "@/lib/supabase";
 import ContratosTable from "@/app/contratos/contratos-table";
-import { ArrowLeft } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { ProfileCharts } from "@/components/profile-charts";
 
 export const dynamic = "force-dynamic";
 
@@ -60,14 +60,11 @@ export default async function EmpresaPage({
 
   return (
     <main className="max-w-7xl mx-auto px-5 py-8 space-y-6">
-      {/* Back link */}
-      <Link
-        href="/empresas"
-        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        Volver al ranking de empresas
-      </Link>
+      <Breadcrumb items={[
+        { label: "Inicio", href: "/" },
+        { label: "Empresas", href: "/empresas" },
+        { label: empresa.nombre },
+      ]} />
 
       {/* Header */}
       <div className="space-y-3">
@@ -114,6 +111,9 @@ export default async function EmpresaPage({
           </div>
         </div>
       </div>
+
+      {/* Gráficas */}
+      <ProfileCharts entityId={empresaId} type="empresa" barLabel="Órganos contratantes" />
 
       {/* Contratos */}
       <div>

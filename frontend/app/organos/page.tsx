@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import OrganoTable from "./organo-table";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -28,14 +29,15 @@ export default async function OrganoPage({
 
   return (
     <main className="max-w-7xl mx-auto px-5 py-8">
-      <div className="mb-6">
+      <div className="mb-6 space-y-2">
+        <Breadcrumb items={[{ label: "Inicio", href: "/" }, { label: "Órganos" }]} />
         <h1
           className="text-xl font-bold tracking-tight"
           style={{ fontFamily: "var(--font-display)" }}
         >
           Órganos contratantes
         </h1>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground">
           Ranking por importe total contratado · Fuente: PLACE
         </p>
       </div>
