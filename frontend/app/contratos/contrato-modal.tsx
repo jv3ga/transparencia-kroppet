@@ -79,7 +79,9 @@ export function ContratoModal({ contrato, onClose }: Props) {
                   {fmtEuros(contrato.importe_sin_iva)}
                 </span>
               </div>
-              {contrato.importe_con_iva && (
+              {contrato.importe_con_iva &&
+               contrato.importe_sin_iva &&
+               contrato.importe_con_iva <= contrato.importe_sin_iva * 2 && (
                 <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-muted/50 border border-border">
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Con IVA</span>
                   <span className="tabnum text-lg font-bold" style={{ fontFamily: "var(--font-mono)" }}>

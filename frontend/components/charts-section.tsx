@@ -132,7 +132,7 @@ export function ChartsSection() {
                 fontSize: 12,
                 color: textColor,
               }}
-              formatter={(v) => [fmtM(Number(v)), "Importe"]}
+              formatter={(v, _name, item) => [fmtM(Number(v)), (item as { name?: string }).name ?? ""]}
             />
           </PieChart>
         </ResponsiveContainer>
