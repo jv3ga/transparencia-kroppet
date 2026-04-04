@@ -98,7 +98,7 @@ export default function EmpresasTable({ initialData, initialCursor, initialQ }: 
         )}
         {rows.map((e, i) => (
           <RankingCard key={e.id} rank={i + 1} nombre={e.nombre} subtitulo={e.nif}
-                       href={`/contratos?empresa_id=${e.id}`}
+                       href={`/empresas/${e.id}`}
                        numContratos={e.num_contratos} totalImporte={e.total_importe} />
         ))}
       </div>
@@ -135,7 +135,7 @@ export default function EmpresasTable({ initialData, initialCursor, initialQ }: 
                 </TableCell>
                 <TableCell className="py-3 overflow-hidden">
                   <Link
-                    href={`/contratos?empresa_id=${e.id}`}
+                    href={`/empresas/${e.id}`}
                     className="font-medium text-sm hover:text-primary transition-colors line-clamp-2"
                   >
                     {e.nombre}
