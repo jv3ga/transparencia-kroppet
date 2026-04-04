@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -8,7 +9,7 @@ import {
 import { useTheme } from "next-themes";
 import { TIPOS_CONTRATO } from "@/lib/constants";
 
-type BarRow = { nombre: string; num_contratos: number; total_importe: number };
+type BarRow = { id: number; nombre: string; num_contratos: number; total_importe: number };
 type TipoRow = { tipo_contrato: string; num_contratos: number; total_importe: number };
 
 const PIE_COLORS = ["#f59e0b", "#fbbf24", "#fcd34d", "#fde68a", "#d97706", "#b45309"];
@@ -34,6 +35,9 @@ export function ProfileCharts({ entityId, type, barLabel }: Props) {
   const [pieData, setPieData]   = useState<TipoRow[]>([]);
   const [loading, setLoading]   = useState(true);
   const { resolvedTheme }       = useTheme();
+  const router                  = useRouter();
+  // empresa profile → bars are organos; organo profile → bars are empresas
+  const barHref = (id: number) => type === "empresa" ? `/organos/${id}` : `/empresas/${id}`;
   const isDark = resolvedTheme === "dark";
 
   const mutedColor = isDark ? "#71717a" : "#a1a1aa";
@@ -68,6 +72,7 @@ export function ProfileCharts({ entityId, type, barLabel }: Props) {
   if (barData.length === 0 && pieData.length === 0) return null;
 
   const bars = barData.map(r => ({
+    id: r.id,
     name: truncate(r.nombre),
     importe: Math.round(r.total_importe),
   }));
@@ -94,8 +99,8 @@ export function ProfileCharts({ entityId, type, barLabel }: Props) {
               style={{ fontFamily: "var(--font-display)" }}>
             {barLabel}
           </h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={bars} layout="vertical" margin={{ left: 4, right: 44, top: 0, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height={Math.max(60, bars.length * 36)}>
+            <BarChart data={bars} layout="vertical" margin={{ left: 4, right: 44, top: 4, bottom: 4 }}>
               <XAxis type="number" hide />
               <YAxis type="category" dataKey="name" width={108}
                      tick={{ fontSize: 10, fill: mutedColor }}
@@ -103,6 +108,8 @@ export function ProfileCharts({ entityId, type, barLabel }: Props) {
               <Tooltip cursor={{ fill: gridColor }} contentStyle={tooltipStyle}
                        formatter={(v) => [fmtM(Number(v)), "Importe"]} />
               <Bar dataKey="importe" fill="#f59e0b" radius={[0, 4, 4, 0]}
+                   barSize={20} cursor="pointer"
+                   onClick={(d) => { const id = (d as unknown as { id?: number }).id; if (id) router.push(barHref(id)); }}
                    label={{ position: "right", formatter: (n: unknown) => fmtM(Number(n)), fontSize: 10, fill: mutedColor }} />
             </BarChart>
           </ResponsiveContainer>

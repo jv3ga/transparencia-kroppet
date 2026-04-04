@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -9,7 +10,7 @@ import {
 import { useTheme } from "next-themes";
 import { TIPOS_CONTRATO } from "@/lib/constants";
 
-type EmpresaRow = { nombre: string; num_contratos: number; total_importe: number };
+type EmpresaRow = { id: number; nombre: string; num_contratos: number; total_importe: number };
 type TipoRow    = { tipo_contrato: string; num_contratos: number; total_importe: number };
 
 function fmtM(n: number) {
@@ -29,6 +30,7 @@ export function ChartsSection() {
   const [empresas, setEmpresas] = useState<EmpresaRow[]>([]);
   const [tipos, setTipos]       = useState<TipoRow[]>([]);
   const { resolvedTheme }       = useTheme();
+  const router                  = useRouter();
   const isDark = resolvedTheme === "dark";
 
   const mutedColor  = isDark ? "#71717a" : "#a1a1aa";
@@ -46,6 +48,7 @@ export function ChartsSection() {
   }, []);
 
   const barData = empresas.map(e => ({
+    id: e.id,
     name: truncate(e.nombre),
     importe: Math.round(e.total_importe),
     contratos: e.num_contratos,
@@ -80,8 +83,8 @@ export function ChartsSection() {
             Ver todas →
           </Link>
         </div>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={barData} layout="vertical" margin={{ left: 4, right: 44, top: 0, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={Math.max(60, barData.length * 36)}>
+          <BarChart data={barData} layout="vertical" margin={{ left: 4, right: 44, top: 4, bottom: 4 }}>
             <XAxis type="number" hide />
             <YAxis
               type="category" dataKey="name" width={108}
@@ -100,6 +103,8 @@ export function ChartsSection() {
               formatter={(v) => [fmtM(Number(v)), "Importe"]}
             />
             <Bar dataKey="importe" fill="#f59e0b" radius={[0, 4, 4, 0]}
+                 barSize={20} cursor="pointer"
+                 onClick={(d) => router.push(`/empresas/${d.id}`)}
                  label={{ position: "right", formatter: (n: unknown) => fmtM(Number(n)), fontSize: 10, fill: mutedColor }} />
           </BarChart>
         </ResponsiveContainer>

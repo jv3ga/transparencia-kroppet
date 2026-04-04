@@ -8,7 +8,7 @@ export async function GET() {
   const [{ data: empresas }, { data: tipos }] = await Promise.all([
     supabase
       .from("empresa_ranking")
-      .select("nombre, num_contratos, total_importe")
+      .select("id, nombre, num_contratos, total_importe")
       .order("total_importe", { ascending: false })
       .limit(8),
     supabase
