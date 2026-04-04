@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/empresas",     label: "Empresas" },
   { href: "/organos",      label: "Órganos" },
   { href: "/subvenciones", label: "Subvenciones" },
+  { href: "/altos-cargos", label: "Sueldos" },
 ];
 
 export function MobileNav() {

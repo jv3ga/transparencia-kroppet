@@ -29,7 +29,7 @@ export function Navbar() {
             { href: "/empresas",     label: "Empresas",     nuevo: false, pronto: false },
             { href: "/organos",      label: "Órganos",      nuevo: false, pronto: false },
             { href: "/subvenciones", label: "Subvenciones", nuevo: true,  pronto: false },
-            { href: "/altos-cargos", label: "Sueldos",      nuevo: false, pronto: true  },
+            { href: "/altos-cargos", label: "Sueldos",      nuevo: true,  pronto: false },
           ].map(({ href, label, nuevo, pronto }) => (
             pronto ? (
               <span

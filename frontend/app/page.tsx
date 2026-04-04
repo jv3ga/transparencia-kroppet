@@ -66,7 +66,7 @@ export default function HomePage() {
               title: "Sueldos de altos cargos",
               desc: "Retribuciones, dietas y complementos de los cargos públicos del gobierno central.",
               href: "/altos-cargos",
-              live: false,
+              live: true,
             },
             {
               title: "Presupuesto del Estado",
