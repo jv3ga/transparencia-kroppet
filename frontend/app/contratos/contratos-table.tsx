@@ -49,11 +49,13 @@ type Props = {
   initialCursor: number;
   initialQ: string;
   initialEstado: string;
+  initialTipo?: string;
+  initialAnio?: string;
   initialEmpresaId?: string;
   initialOrganoId?: string;
 };
 
-export default function ContratosTable({ initialData, initialCursor, initialQ, initialEstado, initialEmpresaId = "", initialOrganoId = "" }: Props) {
+export default function ContratosTable({ initialData, initialCursor, initialQ, initialEstado, initialTipo = "", initialAnio = "", initialEmpresaId = "", initialOrganoId = "" }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -67,9 +69,9 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
   const [filters, setFilters] = useState<Filters>({
     q:         initialQ,
     estado:    initialEstado || "",
-    organo_id: "",
-    tipo:      "",
-    anio:      "",
+    organo_id: initialOrganoId || "",
+    tipo:      initialTipo || "",
+    anio:      initialAnio || "",
   });
 
   // empresa_id y organo_id vienen de la URL — se aplican silenciosamente
@@ -112,8 +114,12 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
     setFilters(next);
     startTransition(() => {
       const p = new URLSearchParams();
-      if (next.q)      p.set("q", next.q);
-      if (next.estado) p.set("estado", next.estado);
+      if (next.q)         p.set("q",         next.q);
+      if (next.estado)    p.set("estado",    next.estado);
+      if (next.organo_id) p.set("organo_id", next.organo_id);
+      if (next.tipo)      p.set("tipo",      next.tipo);
+      if (next.anio)      p.set("anio",      next.anio);
+      if (fixedEmpresaId.current) p.set("empresa_id", fixedEmpresaId.current);
       router.replace(`?${p.toString()}`, { scroll: false });
     });
     fetchPage(next, 0, true);
@@ -158,7 +164,7 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
 
         {/* Órgano */}
         <Select
-          value={filters.organo_id || undefined}
+          value={filters.organo_id}
           onValueChange={val => applyFilter({ organo_id: val ?? "" })}
         >
           <SelectTrigger className={`w-52 ${filters.organo_id ? "border-primary text-primary" : ""}`}>
@@ -184,7 +190,7 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
 
         {/* Tipo */}
         <Select
-          value={filters.tipo || undefined}
+          value={filters.tipo}
           onValueChange={val => applyFilter({ tipo: val ?? "" })}
         >
           <SelectTrigger className={`w-44 ${filters.tipo ? "border-primary text-primary" : ""}`}>
@@ -200,7 +206,7 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
 
         {/* Año */}
         <Select
-          value={filters.anio || undefined}
+          value={filters.anio}
           onValueChange={val => applyFilter({ anio: val ?? "" })}
         >
           <SelectTrigger className={`w-28 ${filters.anio ? "border-primary text-primary" : ""}`}>
@@ -216,7 +222,7 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
 
         {/* Estado */}
         <Select
-          value={filters.estado || undefined}
+          value={filters.estado}
           onValueChange={val => applyFilter({ estado: val ?? "" })}
         >
           <SelectTrigger className={`w-44 ${filters.estado ? "border-primary text-primary" : ""}`}>
