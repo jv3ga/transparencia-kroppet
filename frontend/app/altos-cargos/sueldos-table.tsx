@@ -145,7 +145,7 @@ export default function SueldosTable({ initialData, initialCursor, initialQ, ini
           className="max-w-xs"
         />
 
-        <Select value={filters.anyo} onValueChange={val => applyFilter({ anyo: val })}>
+        <Select value={filters.anyo ?? undefined} onValueChange={val => applyFilter({ anyo: val ?? "" })}>
           <SelectTrigger className={`w-28 ${filters.anyo ? "border-primary text-primary" : ""}`}>
             <SelectValue placeholder="Año">
               {filters.anyo || "Año"}
