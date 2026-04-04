@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-
-export const runtime = "edge";
+import pool from "@/lib/cockroach";
 
 const PAGE_SIZE = 50;
 
@@ -19,34 +17,62 @@ export async function GET(req: NextRequest) {
   const sort_dir = searchParams.get("sort_dir") ?? "desc";
   const VALID_SORT = ["fecha_publicacion", "importe_sin_iva"];
   const col = VALID_SORT.includes(sort_col) ? sort_col : "fecha_publicacion";
-  const asc = sort_dir === "asc";
+  const dir = sort_dir === "asc" ? "ASC" : "DESC";
 
-  let query = supabase
-    .from("contratos")
-    .select(`
-      id, expediente, objeto, tipo_contrato, procedimiento,
-      importe_sin_iva, importe_con_iva, estado, url_fuente,
-      fecha_adjudicacion, fecha_publicacion,
-      empresas ( nombre, nif ),
-      organos  ( nombre )
-    `)
-    .order(col, { ascending: asc, nullsFirst: false })
-    .order("id", { ascending: false })
-    .range(cursor, cursor + PAGE_SIZE - 1);
+  const params: unknown[] = [];
+  const where: string[] = [];
 
-  if (q)          query = query.ilike("objeto", `%${q}%`);
-  if (estado)     query = query.eq("estado", estado);
-  if (organo_id)  query = query.eq("organo_id", parseInt(organo_id, 10));
-  if (empresa_id) query = query.eq("empresa_id", parseInt(empresa_id, 10));
-  if (tipo)       query = query.eq("tipo_contrato", tipo);
-  if (anio)       query = query.gte("fecha_publicacion", `${anio}-01-01`)
-                               .lte("fecha_publicacion", `${anio}-12-31`);
+  if (q)          where.push(`c.objeto ILIKE $${params.push(`%${q}%`)}`);
+  if (estado)     where.push(`c.estado = $${params.push(estado)}`);
+  if (organo_id)  where.push(`c.organo_id = $${params.push(parseInt(organo_id, 10))}`);
+  if (empresa_id) where.push(`c.empresa_id = $${params.push(parseInt(empresa_id, 10))}`);
+  if (tipo)       where.push(`c.tipo_contrato = $${params.push(tipo)}`);
+  if (anio) {
+    where.push(`c.fecha_publicacion >= $${params.push(`${anio}-01-01`)}`);
+    where.push(`c.fecha_publicacion <= $${params.push(`${anio}-12-31`)}`);
+  }
 
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const limitIdx  = params.push(PAGE_SIZE);
+  const offsetIdx = params.push(cursor);
 
-  return NextResponse.json({
-    data: data ?? [],
-    nextCursor: (data?.length ?? 0) === PAGE_SIZE ? cursor + PAGE_SIZE : null,
-  });
+  const sql = `
+    SELECT
+      c.id, c.expediente, c.objeto, c.tipo_contrato, c.procedimiento,
+      c.importe_sin_iva, c.importe_con_iva, c.estado, c.url_fuente,
+      c.fecha_adjudicacion, c.fecha_publicacion,
+      e.nombre AS empresa_nombre, e.nif AS empresa_nif,
+      o.nombre AS organo_nombre
+    FROM contratos c
+    LEFT JOIN empresas e ON e.id = c.empresa_id
+    LEFT JOIN organos  o ON o.id = c.organo_id
+    ${whereClause}
+    ORDER BY c.${col} ${dir} NULLS LAST, c.id DESC
+    LIMIT $${limitIdx} OFFSET $${offsetIdx}
+  `;
+
+  try {
+    const { rows } = await pool.query(sql, params);
+    const data = rows.map(r => ({
+      id:                 r.id,
+      expediente:         r.expediente,
+      objeto:             r.objeto,
+      tipo_contrato:      r.tipo_contrato,
+      procedimiento:      r.procedimiento,
+      importe_sin_iva:    r.importe_sin_iva,
+      importe_con_iva:    r.importe_con_iva,
+      estado:             r.estado,
+      url_fuente:         r.url_fuente,
+      fecha_adjudicacion: r.fecha_adjudicacion,
+      fecha_publicacion:  r.fecha_publicacion,
+      empresas: r.empresa_nombre ? { nombre: r.empresa_nombre, nif: r.empresa_nif } : null,
+      organos:  r.organo_nombre  ? { nombre: r.organo_nombre }                      : null,
+    }));
+    return NextResponse.json({
+      data,
+      nextCursor: rows.length === PAGE_SIZE ? cursor + PAGE_SIZE : null,
+    });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
