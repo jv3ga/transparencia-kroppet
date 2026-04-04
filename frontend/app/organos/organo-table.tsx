@@ -98,7 +98,7 @@ export default function OrganoTable({ initialData, initialCursor, initialQ }: Pr
         )}
         {rows.map((o, i) => (
           <RankingCard key={o.id} rank={i + 1} nombre={o.nombre} subtitulo={o.codigo}
-                       href={`/contratos?organo_id=${o.id}`}
+                       href={`/organos/${o.id}`}
                        numContratos={o.num_contratos} totalImporte={o.total_importe} />
         ))}
       </div>
@@ -135,7 +135,7 @@ export default function OrganoTable({ initialData, initialCursor, initialQ }: Pr
                 </TableCell>
                 <TableCell className="py-3 overflow-hidden">
                   <Link
-                    href={`/contratos?organo_id=${o.id}`}
+                    href={`/organos/${o.id}`}
                     className="font-medium text-sm hover:text-primary transition-colors line-clamp-2"
                   >
                     {o.nombre}

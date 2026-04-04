@@ -53,16 +53,21 @@ type Props = {
   initialAnio?: string;
   initialEmpresaId?: string;
   initialOrganoId?: string;
+  initialOrganoNombre?: string;
 };
 
-export default function ContratosTable({ initialData, initialCursor, initialQ, initialEstado, initialTipo = "", initialAnio = "", initialEmpresaId = "", initialOrganoId = "" }: Props) {
+export default function ContratosTable({ initialData, initialCursor, initialQ, initialEstado, initialTipo = "", initialAnio = "", initialEmpresaId = "", initialOrganoId = "", initialOrganoNombre }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
   const [rows, setRows]               = useState<Contrato[]>(initialData);
   const [cursor, setCursor]           = useState<number | null>(initialCursor);
   const [loading, setLoading]         = useState(false);
-  const [organos, setOrganos]         = useState<Organo[]>([]);
+  const [organos, setOrganos]         = useState<Organo[]>(
+    initialOrganoId && initialOrganoNombre
+      ? [{ id: parseInt(initialOrganoId, 10), nombre: initialOrganoNombre }]
+      : []
+  );
   const [organoSearch, setOrganoSearch] = useState("");
   const [selected, setSelected]       = useState<Contrato | null>(null);
 
@@ -168,7 +173,11 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
           onValueChange={val => applyFilter({ organo_id: val ?? "" })}
         >
           <SelectTrigger className={`w-52 ${filters.organo_id ? "border-primary text-primary" : ""}`}>
-            <SelectValue placeholder="Órgano contratante" />
+            <SelectValue placeholder="Órgano contratante">
+              {filters.organo_id
+                ? (organos.find(o => String(o.id) === filters.organo_id)?.nombre ?? filters.organo_id)
+                : undefined}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <div className="p-2">
@@ -194,7 +203,9 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
           onValueChange={val => applyFilter({ tipo: val ?? "" })}
         >
           <SelectTrigger className={`w-44 ${filters.tipo ? "border-primary text-primary" : ""}`}>
-            <SelectValue placeholder="Tipo contrato" />
+            <SelectValue placeholder="Tipo contrato">
+              {filters.tipo ? (TIPOS_CONTRATO[filters.tipo] ?? filters.tipo) : undefined}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {filters.tipo && <SelectItem value="">Todos los tipos</SelectItem>}
@@ -226,7 +237,9 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
           onValueChange={val => applyFilter({ estado: val ?? "" })}
         >
           <SelectTrigger className={`w-44 ${filters.estado ? "border-primary text-primary" : ""}`}>
-            <SelectValue placeholder="Estado" />
+            <SelectValue placeholder="Estado">
+              {filters.estado ? (ESTADO_LABEL[filters.estado]?.label ?? filters.estado) : undefined}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {filters.estado && <SelectItem value="">Todos los estados</SelectItem>}
