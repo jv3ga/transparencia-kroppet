@@ -60,7 +60,7 @@ export default function HomePage() {
               title: "Subvenciones",
               desc: "Qué entidades —empresas, ONGs, partidos— reciben subvenciones públicas y de qué ministerios.",
               href: "/subvenciones",
-              live: false,
+              live: true,
             },
             {
               title: "Sueldos de altos cargos",
