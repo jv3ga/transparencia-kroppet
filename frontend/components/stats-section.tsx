@@ -93,11 +93,10 @@ export function StatsSection() {
 
   return (
     <div className="flex flex-wrap gap-3">
-      <StatChip value={s.contratos}    label="contratos indexados"     href="/contratos" />
-      <StatChip value={s.empresas}     label="empresas adjudicatarias" href="/empresas" />
-      <StatChip value={s.organos}      label="órganos contratantes"    href="/organos" />
-      <StatChip value={s.subvenciones} label="subvenciones"            href="/subvenciones" />
-      <StatChip value={s.volumen}      label="volumen adjudicado"       href={null} isVolumen />
+      <StatChip value={s.contratos} label="contratos indexados"     href="/contratos" />
+      <StatChip value={s.empresas}  label="empresas adjudicatarias" href="/empresas" />
+      <StatChip value={s.organos}   label="órganos contratantes"    href="/organos" />
+      <StatChip value={s.volumen}   label="volumen adjudicado"       href={null} isVolumen />
     </div>
   );
 }

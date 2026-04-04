@@ -25,10 +25,9 @@ export function Navbar() {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
           {[
-            { href: "/contratos",    label: "Contratos" },
-            { href: "/empresas",     label: "Empresas" },
-            { href: "/organos",      label: "Órganos" },
-            { href: "/subvenciones", label: "Subvenciones" },
+            { href: "/contratos", label: "Contratos" },
+            { href: "/empresas",  label: "Empresas" },
+            { href: "/organos",   label: "Órganos" },
           ].map(({ href, label }) => (
             <Link
               key={href}

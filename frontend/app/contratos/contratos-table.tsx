@@ -14,6 +14,7 @@ import {
 import type { Contrato } from "@/lib/supabase";
 import { TIPOS_CONTRATO, ANIOS } from "@/lib/constants";
 import { ContratoCard } from "./contrato-card";
+import { ContratoModal } from "./contrato-modal";
 
 const ESTADO_LABEL: Record<string, { label: string; color: string }> = {
   PUB: { label: "Publicado",     color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
@@ -56,11 +57,12 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  const [rows, setRows]           = useState<Contrato[]>(initialData);
-  const [cursor, setCursor]       = useState<number | null>(initialCursor);
-  const [loading, setLoading]     = useState(false);
-  const [organos, setOrganos]     = useState<Organo[]>([]);
+  const [rows, setRows]               = useState<Contrato[]>(initialData);
+  const [cursor, setCursor]           = useState<number | null>(initialCursor);
+  const [loading, setLoading]         = useState(false);
+  const [organos, setOrganos]         = useState<Organo[]>([]);
   const [organoSearch, setOrganoSearch] = useState("");
+  const [selected, setSelected]       = useState<Contrato | null>(null);
 
   const [filters, setFilters] = useState<Filters>({
     q:         initialQ,
@@ -248,7 +250,11 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
         {rows.length === 0 && !loading && (
           <p className="text-center py-12 text-muted-foreground text-sm">Sin resultados</p>
         )}
-        {rows.map(c => <ContratoCard key={c.id} c={c} />)}
+        {rows.map(c => (
+          <button key={c.id} className="w-full text-left" onClick={() => setSelected(c)}>
+            <ContratoCard c={c} />
+          </button>
+        ))}
       </div>
 
       {/* Tabla desktop */}
@@ -283,10 +289,13 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
             {rows.map(c => {
               const est = ESTADO_LABEL[c.estado ?? ""] ?? { label: c.estado ?? "—", color: "bg-muted text-muted-foreground" };
               return (
-                <TableRow key={c.id} className="border-border hover:bg-muted/30 transition-colors">
+                <TableRow key={c.id}
+                          onClick={() => setSelected(c)}
+                          className="border-border hover:bg-muted/30 transition-colors cursor-pointer">
                   <TableCell className="max-w-xs py-3">
                     {c.url_fuente ? (
                       <a href={c.url_fuente} target="_blank" rel="noopener noreferrer"
+                         onClick={e => e.stopPropagation()}
                          className="text-primary hover:underline underline-offset-2 line-clamp-2 text-sm">
                         {c.objeto}
                       </a>
@@ -346,6 +355,8 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
           </div>
         </div>
       )}
+
+      <ContratoModal contrato={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
