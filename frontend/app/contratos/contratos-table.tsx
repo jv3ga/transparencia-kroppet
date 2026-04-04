@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem,
@@ -34,12 +35,16 @@ function fmtDate(s: string | null) {
   return new Date(s).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-type Organo = { id: number; nombre: string };
+type Organo   = { id: number; nombre: string };
+type Empresa  = { id: number; nombre: string; nif: string };
+
+type Sort = { col: "fecha_publicacion" | "importe_sin_iva"; dir: "asc" | "desc" };
 
 type Filters = {
   q: string;
   estado: string;
   organo_id: string;
+  empresa_id: string;
   tipo: string;
   anio: string;
 };
@@ -51,12 +56,13 @@ type Props = {
   initialEstado: string;
   initialTipo?: string;
   initialAnio?: string;
-  initialEmpresaId?: string;
+  initialEmpresaId?: string;       // contexto fijo (perfil empresa) — oculto
+  initialFilterEmpresaId?: string; // filtro interactivo desde URL
   initialOrganoId?: string;
   initialOrganoNombre?: string;
 };
 
-export default function ContratosTable({ initialData, initialCursor, initialQ, initialEstado, initialTipo = "", initialAnio = "", initialEmpresaId = "", initialOrganoId = "", initialOrganoNombre }: Props) {
+export default function ContratosTable({ initialData, initialCursor, initialQ, initialEstado, initialTipo = "", initialAnio = "", initialEmpresaId = "", initialFilterEmpresaId = "", initialOrganoId = "", initialOrganoNombre }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -68,22 +74,28 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
       ? [{ id: parseInt(initialOrganoId, 10), nombre: initialOrganoNombre }]
       : []
   );
-  const [organoSearch, setOrganoSearch] = useState("");
-  const organoSearchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+  const [organoSearch, setOrganoSearch]     = useState("");
+  const organoSearchTimeout                 = useRef<ReturnType<typeof setTimeout>>(null);
+  const [empresas, setEmpresas]             = useState<Empresa[]>([]);
+  const [empresaSearch, setEmpresaSearch]   = useState("");
+  const empresaSearchTimeout                = useRef<ReturnType<typeof setTimeout>>(null);
   const [selected, setSelected]       = useState<Contrato | null>(null);
 
   const [filters, setFilters] = useState<Filters>({
-    q:         initialQ,
-    estado:    initialEstado || "",
-    organo_id: initialOrganoId || "",
-    tipo:      initialTipo || "",
-    anio:      initialAnio || "",
+    q:          initialQ,
+    estado:     initialEstado || "",
+    organo_id:  initialOrganoId || "",
+    empresa_id: initialFilterEmpresaId || "",
+    tipo:       initialTipo || "",
+    anio:       initialAnio || "",
   });
 
   // empresa_id y organo_id vienen de la URL — se aplican silenciosamente
   const fixedEmpresaId = useRef(initialEmpresaId);
   const fixedOrganoId  = useRef(initialOrganoId);
 
+  const [sort, setSort] = useState<Sort>({ col: "fecha_publicacion", dir: "desc" });
+  const activeSort    = useRef<Sort>(sort);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
   const sentinelRef   = useRef<HTMLDivElement>(null);
   const activeFilters = useRef<Filters>(filters);
@@ -93,6 +105,19 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
     if (initialOrganoId && initialOrganoNombre) return; // ya pre-seeded
     fetch("/api/organos").then(r => r.json()).then(setOrganos).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleEmpresaSearch(val: string) {
+    setEmpresaSearch(val);
+    if (empresaSearchTimeout.current) clearTimeout(empresaSearchTimeout.current);
+    empresaSearchTimeout.current = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (val) params.set("q", val);
+      fetch(`/api/empresas?${params}`)
+        .then(r => r.json())
+        .then(d => setEmpresas(d.data ?? []))
+        .catch(() => {});
+    }, 300);
+  }
 
   function handleOrganoSearch(val: string) {
     setOrganoSearch(val);
@@ -112,8 +137,11 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
     if (f.organo_id)                params.set("organo_id", f.organo_id);
     if (f.tipo)                     params.set("tipo", f.tipo);
     if (f.anio)                     params.set("anio", f.anio);
-    if (fixedEmpresaId.current) params.set("empresa_id", fixedEmpresaId.current);
+    const effectiveEmpresaId = fixedEmpresaId.current || f.empresa_id;
+    if (effectiveEmpresaId)     params.set("empresa_id", effectiveEmpresaId);
     if (fixedOrganoId.current)  params.set("organo_id",  fixedOrganoId.current);
+    params.set("sort_col", activeSort.current.col);
+    params.set("sort_dir", activeSort.current.dir);
 
     const res  = await fetch(`/api/contratos?${params}`);
     const json = await res.json();
@@ -132,12 +160,12 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
     setFilters(next);
     startTransition(() => {
       const p = new URLSearchParams();
-      if (next.q)         p.set("q",         next.q);
-      if (next.estado)    p.set("estado",    next.estado);
-      if (next.organo_id) p.set("organo_id", next.organo_id);
-      if (next.tipo)      p.set("tipo",      next.tipo);
-      if (next.anio)      p.set("anio",      next.anio);
-      if (fixedEmpresaId.current) p.set("empresa_id", fixedEmpresaId.current);
+      if (next.q)          p.set("q",          next.q);
+      if (next.estado)     p.set("estado",     next.estado);
+      if (next.organo_id)  p.set("organo_id",  next.organo_id);
+      if (next.empresa_id) p.set("empresa_id", next.empresa_id);
+      if (next.tipo)       p.set("tipo",       next.tipo);
+      if (next.anio)       p.set("anio",       next.anio);
       router.replace(`?${p.toString()}`, { scroll: false });
     });
     fetchPage(next, 0, true);
@@ -158,13 +186,23 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
     return () => obs.disconnect();
   }, [cursor, loading, fetchPage]);
 
+  function handleSort(col: Sort["col"]) {
+    const next: Sort = {
+      col,
+      dir: activeSort.current.col === col && activeSort.current.dir === "desc" ? "asc" : "desc",
+    };
+    activeSort.current = next;
+    setSort(next);
+    fetchPage(activeFilters.current, 0, true);
+  }
+
   function handleSearch(val: string) {
     setFilters(f => ({ ...f, q: val }));
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => applyFilter({ q: val }), 350);
   }
 
-  const activeCount = [filters.estado, filters.organo_id, filters.tipo, filters.anio].filter(Boolean).length;
+  const activeCount = [filters.estado, filters.organo_id, filters.empresa_id, filters.tipo, filters.anio].filter(Boolean).length;
 
   return (
     <div className="space-y-4">
@@ -207,6 +245,44 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
             ))}
           </SelectContent>
         </Select>
+
+        {/* Empresa (solo en contratos page, no en perfil) */}
+        {!fixedEmpresaId.current && (
+          <Select
+            value={filters.empresa_id}
+            onValueChange={val => applyFilter({ empresa_id: val ?? "" })}
+          >
+            <SelectTrigger className={`w-52 ${filters.empresa_id ? "border-primary text-primary" : ""}`}>
+              <SelectValue placeholder="Empresa adjudicataria">
+                {filters.empresa_id
+                  ? (empresas.find(e => String(e.id) === filters.empresa_id)?.nombre ?? filters.empresa_id)
+                  : undefined}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <div className="p-2">
+                <Input
+                  placeholder="Buscar empresa o CIF…"
+                  value={empresaSearch}
+                  onChange={e => handleEmpresaSearch(e.target.value)}
+                  onKeyDown={e => e.stopPropagation()}
+                  className="h-8 text-sm"
+                />
+              </div>
+              {filters.empresa_id && (
+                <SelectItem value="">Todas las empresas</SelectItem>
+              )}
+              {empresas.map(e => (
+                <SelectItem key={e.id} value={String(e.id)}>
+                  {e.nombre}
+                  {e.nif && (
+                    <span className="text-muted-foreground text-xs ml-1.5 tabnum">{e.nif}</span>
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Tipo */}
         <Select
@@ -262,7 +338,7 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
 
         {activeCount > 0 && (
           <button
-            onClick={() => applyFilter({ estado: "", organo_id: "", tipo: "", anio: "" })}
+            onClick={() => applyFilter({ estado: "", organo_id: "", empresa_id: "", tipo: "", anio: "" })}
             className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
           >
             Limpiar ({activeCount})
@@ -303,9 +379,25 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
               <TableHead>Objeto</TableHead>
               <TableHead>Órgano</TableHead>
               <TableHead>Empresa</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Importe</TableHead>
+              <TableHead className="text-right whitespace-nowrap">
+                <button onClick={() => handleSort("importe_sin_iva")}
+                        className="inline-flex items-center gap-1 hover:text-foreground transition-colors ml-auto">
+                  Importe
+                  {sort.col === "importe_sin_iva"
+                    ? sort.dir === "desc" ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />
+                    : <ChevronsUpDown className="h-3 w-3 opacity-40" />}
+                </button>
+              </TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead className="whitespace-nowrap">Fecha</TableHead>
+              <TableHead className="whitespace-nowrap">
+                <button onClick={() => handleSort("fecha_publicacion")}
+                        className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
+                  Fecha
+                  {sort.col === "fecha_publicacion"
+                    ? sort.dir === "desc" ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />
+                    : <ChevronsUpDown className="h-3 w-3 opacity-40" />}
+                </button>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

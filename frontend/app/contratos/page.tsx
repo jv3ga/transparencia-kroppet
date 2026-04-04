@@ -61,7 +61,7 @@ export default async function ContratosPage({
         initialEstado={estado ?? ""}
         initialTipo={tipo ?? ""}
         initialAnio={anio ?? ""}
-        initialEmpresaId={empresa_id ?? ""}
+        initialFilterEmpresaId={empresa_id ?? ""}
         initialOrganoId={organo_id ?? ""}
       />
     </main>

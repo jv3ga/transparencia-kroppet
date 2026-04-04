@@ -15,6 +15,12 @@ export async function GET(req: NextRequest) {
   const anio       = searchParams.get("anio")       ?? "";
   const cursor     = parseInt(searchParams.get("cursor") ?? "0", 10);
 
+  const sort_col = searchParams.get("sort_col") ?? "fecha_publicacion";
+  const sort_dir = searchParams.get("sort_dir") ?? "desc";
+  const VALID_SORT = ["fecha_publicacion", "importe_sin_iva"];
+  const col = VALID_SORT.includes(sort_col) ? sort_col : "fecha_publicacion";
+  const asc = sort_dir === "asc";
+
   let query = supabase
     .from("contratos")
     .select(`
@@ -24,7 +30,7 @@ export async function GET(req: NextRequest) {
       empresas ( nombre, nif ),
       organos  ( nombre )
     `)
-    .order("fecha_publicacion", { ascending: false })
+    .order(col, { ascending: asc, nullsFirst: false })
     .order("id", { ascending: false })
     .range(cursor, cursor + PAGE_SIZE - 1);
 

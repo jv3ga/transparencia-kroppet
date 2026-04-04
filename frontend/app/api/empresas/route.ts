@@ -22,17 +22,22 @@ const PAGE_SIZE = 50;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const q      = searchParams.get("q") ?? "";
-  const cursor = parseInt(searchParams.get("cursor") ?? "0", 10);
+  const q        = searchParams.get("q") ?? "";
+  const cursor   = parseInt(searchParams.get("cursor") ?? "0", 10);
+  const sort_col = searchParams.get("sort_col") ?? "total_importe";
+  const sort_dir = searchParams.get("sort_dir") ?? "desc";
+  const VALID_SORT = ["total_importe", "num_contratos"];
+  const col = VALID_SORT.includes(sort_col) ? sort_col : "total_importe";
+  const asc = sort_dir === "asc";
 
   let query = supabase
     .from("empresa_ranking")
     .select("*")
-    .order("total_importe", { ascending: false })
+    .order(col, { ascending: asc, nullsFirst: false })
     .order("id", { ascending: false })
     .range(cursor, cursor + PAGE_SIZE - 1);
 
-  if (q) query = query.ilike("nombre", `%${q}%`);
+  if (q) query = query.or(`nombre.ilike.%${q}%,nif.ilike.%${q}%`);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

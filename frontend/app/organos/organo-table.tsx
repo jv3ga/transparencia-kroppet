@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell,
@@ -28,11 +29,15 @@ type Props = {
   initialQ: string;
 };
 
+type Sort = { col: "total_importe" | "num_contratos"; dir: "asc" | "desc" };
+
 export default function OrganoTable({ initialData, initialCursor, initialQ }: Props) {
   const [rows, setRows]       = useState<OrganoRow[]>(initialData);
   const [cursor, setCursor]   = useState<number | null>(initialCursor);
   const [loading, setLoading] = useState(false);
   const [q, setQ]             = useState(initialQ);
+  const [sort, setSort]       = useState<Sort>({ col: "total_importe", dir: "desc" });
+  const activeSort            = useRef<Sort>(sort);
   const sentinelRef           = useRef<HTMLDivElement>(null);
   const searchTimeout         = useRef<ReturnType<typeof setTimeout>>(null);
   const activeQ               = useRef(initialQ);
@@ -41,6 +46,8 @@ export default function OrganoTable({ initialData, initialCursor, initialQ }: Pr
     setLoading(true);
     const params = new URLSearchParams({ cursor: String(cur) });
     if (search) params.set("q", search);
+    params.set("sort_col", activeSort.current.col);
+    params.set("sort_dir", activeSort.current.dir);
     const res  = await fetch(`/api/organos-ranking?${params}`);
     const json = await res.json();
     setRows(prev => {
@@ -66,6 +73,16 @@ export default function OrganoTable({ initialData, initialCursor, initialQ }: Pr
     obs.observe(el);
     return () => obs.disconnect();
   }, [cursor, loading, fetchPage]);
+
+  function handleSort(col: Sort["col"]) {
+    const next: Sort = {
+      col,
+      dir: activeSort.current.col === col && activeSort.current.dir === "desc" ? "asc" : "desc",
+    };
+    activeSort.current = next;
+    setSort(next);
+    fetchPage(activeQ.current, 0, true);
+  }
 
   function handleSearch(val: string) {
     setQ(val);
@@ -116,8 +133,24 @@ export default function OrganoTable({ initialData, initialCursor, initialQ }: Pr
             <TableRow className="border-border">
               <TableHead className="text-right">#</TableHead>
               <TableHead>Órgano</TableHead>
-              <TableHead className="text-right">Contratos</TableHead>
-              <TableHead className="text-right">Importe total</TableHead>
+              <TableHead className="text-right">
+                <button onClick={() => handleSort("num_contratos")}
+                        className="inline-flex items-center gap-1 ml-auto hover:text-foreground transition-colors">
+                  Contratos
+                  {sort.col === "num_contratos"
+                    ? sort.dir === "desc" ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />
+                    : <ChevronsUpDown className="h-3 w-3 opacity-40" />}
+                </button>
+              </TableHead>
+              <TableHead className="text-right">
+                <button onClick={() => handleSort("total_importe")}
+                        className="inline-flex items-center gap-1 ml-auto hover:text-foreground transition-colors">
+                  Importe total
+                  {sort.col === "total_importe"
+                    ? sort.dir === "desc" ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />
+                    : <ChevronsUpDown className="h-3 w-3 opacity-40" />}
+                </button>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
