@@ -69,6 +69,7 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
       : []
   );
   const [organoSearch, setOrganoSearch] = useState("");
+  const organoSearchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
   const [selected, setSelected]       = useState<Contrato | null>(null);
 
   const [filters, setFilters] = useState<Filters>({
@@ -87,9 +88,21 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
   const sentinelRef   = useRef<HTMLDivElement>(null);
   const activeFilters = useRef<Filters>(filters);
 
+  // Carga inicial: top 50 por nombre para el placeholder, o el organo fijo si viene de perfil
   useEffect(() => {
+    if (initialOrganoId && initialOrganoNombre) return; // ya pre-seeded
     fetch("/api/organos").then(r => r.json()).then(setOrganos).catch(() => {});
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleOrganoSearch(val: string) {
+    setOrganoSearch(val);
+    if (organoSearchTimeout.current) clearTimeout(organoSearchTimeout.current);
+    organoSearchTimeout.current = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (val) params.set("q", val);
+      fetch(`/api/organos?${params}`).then(r => r.json()).then(setOrganos).catch(() => {});
+    }, 300);
+  }
 
   const fetchPage = useCallback(async (f: Filters, cur: number, replace: boolean) => {
     setLoading(true);
@@ -152,9 +165,6 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
   }
 
   const activeCount = [filters.estado, filters.organo_id, filters.tipo, filters.anio].filter(Boolean).length;
-  const organosFiltrados = organos.filter(o =>
-    o.nombre.toLowerCase().includes(organoSearch.toLowerCase())
-  );
 
   return (
     <div className="space-y-4">
@@ -184,14 +194,15 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
               <Input
                 placeholder="Buscar órgano…"
                 value={organoSearch}
-                onChange={e => setOrganoSearch(e.target.value)}
+                onChange={e => handleOrganoSearch(e.target.value)}
+                onKeyDown={e => e.stopPropagation()}
                 className="h-8 text-sm"
               />
             </div>
             {filters.organo_id && (
               <SelectItem value="">Todos los órganos</SelectItem>
             )}
-            {organosFiltrados.slice(0, 100).map(o => (
+            {organos.map(o => (
               <SelectItem key={o.id} value={String(o.id)}>{o.nombre}</SelectItem>
             ))}
           </SelectContent>
