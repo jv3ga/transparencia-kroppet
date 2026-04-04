@@ -1,22 +1,5 @@
-// NOTE: This route depends on the `empresa_ranking` view in the database.
-// Create it with:
-//
-//   CREATE OR REPLACE VIEW empresa_ranking AS
-//   SELECT
-//     e.id,
-//     e.nombre,
-//     e.nif,
-//     COUNT(c.id)           AS num_contratos,
-//     SUM(c.importe_sin_iva) AS total_importe
-//   FROM empresas e
-//   JOIN contratos c ON c.empresa_id = e.id
-//   WHERE c.importe_sin_iva IS NOT NULL
-//   GROUP BY e.id, e.nombre, e.nif;
-
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-
-export const runtime = "edge";
+import pool from "@/lib/cockroach";
 
 const PAGE_SIZE = 50;
 
@@ -28,22 +11,31 @@ export async function GET(req: NextRequest) {
   const sort_dir = searchParams.get("sort_dir") ?? "desc";
   const VALID_SORT = ["total_importe", "num_contratos"];
   const col = VALID_SORT.includes(sort_col) ? sort_col : "total_importe";
-  const asc = sort_dir === "asc";
+  const dir = sort_dir === "asc" ? "ASC" : "DESC";
 
-  let query = supabase
-    .from("empresa_ranking")
-    .select("*")
-    .order(col, { ascending: asc, nullsFirst: false })
-    .order("id", { ascending: false })
-    .range(cursor, cursor + PAGE_SIZE - 1);
+  const params: unknown[] = [];
+  const where: string[] = [];
+  if (q) where.push(`(nombre ILIKE $${params.push(`%${q}%`)} OR nif ILIKE $${params.push(`%${q}%`)})`);
 
-  if (q) query = query.or(`nombre.ilike.%${q}%,nif.ilike.%${q}%`);
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const limitIdx  = params.push(PAGE_SIZE);
+  const offsetIdx = params.push(cursor);
 
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const sql = `
+    SELECT id, nombre, nif, num_contratos, total_importe
+    FROM empresa_ranking
+    ${whereClause}
+    ORDER BY ${col} ${dir} NULLS LAST, id DESC
+    LIMIT $${limitIdx} OFFSET $${offsetIdx}
+  `;
 
-  return NextResponse.json({
-    data: data ?? [],
-    nextCursor: (data?.length ?? 0) === PAGE_SIZE ? cursor + PAGE_SIZE : null,
-  });
+  try {
+    const { rows } = await pool.query(sql, params);
+    return NextResponse.json({
+      data: rows,
+      nextCursor: rows.length === PAGE_SIZE ? cursor + PAGE_SIZE : null,
+    });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

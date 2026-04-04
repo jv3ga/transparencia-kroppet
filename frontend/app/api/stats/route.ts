@@ -1,29 +1,26 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import pool from "@/lib/cockroach";
 
-export const runtime = "edge";
 export const revalidate = 3600;
 
 export async function GET() {
-  const [
-    { count: contratos },
-    { count: empresas },
-    { count: organos },
-    { count: subvenciones },
-    { data: volData },
-  ] = await Promise.all([
-    supabase.from("contratos").select("*", { count: "exact", head: true }),
-    supabase.from("empresas").select("*", { count: "exact", head: true }),
-    supabase.from("organos").select("*", { count: "exact", head: true }),
-    supabase.from("subvenciones").select("*", { count: "exact", head: true }),
-    supabase.rpc("sum_importe_contratos"),
-  ]);
+  try {
+    const [contratosRes, empresasRes, organosRes, subvencionesRes, volumenRes] = await Promise.all([
+      pool.query("SELECT COUNT(*)::int AS n FROM contratos"),
+      pool.query("SELECT COUNT(*)::int AS n FROM empresas"),
+      pool.query("SELECT COUNT(*)::int AS n FROM organos"),
+      pool.query("SELECT COUNT(*)::int AS n FROM subvenciones"),
+      pool.query("SELECT SUM(importe_sin_iva) AS v FROM contratos"),
+    ]);
 
-  return NextResponse.json({
-    contratos:    contratos    ?? 0,
-    empresas:     empresas     ?? 0,
-    organos:      organos      ?? 0,
-    subvenciones: subvenciones ?? 0,
-    volumen:      (volData as unknown as number) ?? 0,
-  });
+    return NextResponse.json({
+      contratos:    contratosRes.rows[0].n,
+      empresas:     empresasRes.rows[0].n,
+      organos:      organosRes.rows[0].n,
+      subvenciones: subvencionesRes.rows[0].n,
+      volumen:      Number(volumenRes.rows[0].v ?? 0),
+    });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

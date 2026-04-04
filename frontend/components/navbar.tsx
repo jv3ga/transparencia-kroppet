@@ -25,17 +25,33 @@ export function Navbar() {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
           {[
-            { href: "/contratos", label: "Contratos" },
-            { href: "/empresas",  label: "Empresas" },
-            { href: "/organos",   label: "Órganos" },
-          ].map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-md hover:bg-accent transition-colors tracking-wide"
-            >
-              {label}
-            </Link>
+            { href: "/contratos",    label: "Contratos",    nuevo: false, pronto: false },
+            { href: "/empresas",     label: "Empresas",     nuevo: false, pronto: false },
+            { href: "/organos",      label: "Órganos",      nuevo: false, pronto: false },
+            { href: "/subvenciones", label: "Subvenciones", nuevo: true,  pronto: false },
+            { href: "/altos-cargos", label: "Sueldos",      nuevo: false, pronto: true  },
+          ].map(({ href, label, nuevo, pronto }) => (
+            pronto ? (
+              <span
+                key={href}
+                className="relative text-xs text-muted-foreground/40 px-3 py-1.5 rounded-md tracking-wide cursor-default select-none"
+                title="Próximamente"
+              >
+                {label}
+                <span className="ml-1 text-[9px] uppercase tracking-wider opacity-60">pronto</span>
+              </span>
+            ) : (
+              <Link
+                key={href}
+                href={href}
+                className="relative text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-md hover:bg-accent transition-colors tracking-wide"
+              >
+                {label}
+                {nuevo && (
+                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary" />
+                )}
+              </Link>
+            )
           ))}
           <a
             href="https://github.com/jv3ga/transparencia-kroppet"

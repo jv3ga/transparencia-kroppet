@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-
-export const runtime = "edge";
+import pool from "@/lib/cockroach";
 
 const PAGE_SIZE = 50;
 
@@ -13,22 +11,28 @@ export async function GET(req: NextRequest) {
   const sort_dir = searchParams.get("sort_dir") ?? "desc";
   const VALID_SORT = ["total_importe", "num_contratos"];
   const col = VALID_SORT.includes(sort_col) ? sort_col : "total_importe";
-  const asc = sort_dir === "asc";
+  const dir = sort_dir === "asc" ? "ASC" : "DESC";
 
-  let query = supabase
-    .from("organo_ranking")
-    .select("*")
-    .order(col, { ascending: asc, nullsFirst: false })
-    .order("id", { ascending: false })
-    .range(cursor, cursor + PAGE_SIZE - 1);
+  const params: unknown[] = [];
+  const where = q ? `WHERE nombre ILIKE $${params.push(`%${q}%`)}` : "";
+  const limitIdx  = params.push(PAGE_SIZE);
+  const offsetIdx = params.push(cursor);
 
-  if (q) query = query.ilike("nombre", `%${q}%`);
+  const sql = `
+    SELECT id, nombre, codigo, num_contratos, total_importe
+    FROM organo_ranking
+    ${where}
+    ORDER BY ${col} ${dir} NULLS LAST, id DESC
+    LIMIT $${limitIdx} OFFSET $${offsetIdx}
+  `;
 
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  return NextResponse.json({
-    data: data ?? [],
-    nextCursor: (data?.length ?? 0) === PAGE_SIZE ? cursor + PAGE_SIZE : null,
-  });
+  try {
+    const { rows } = await pool.query(sql, params);
+    return NextResponse.json({
+      data: rows,
+      nextCursor: rows.length === PAGE_SIZE ? cursor + PAGE_SIZE : null,
+    });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import pool from "@/lib/cockroach";
 import SubvencionesTable from "./subvenciones-table";
 
 export const dynamic = "force-dynamic";
@@ -19,20 +19,30 @@ type Subvencion = {
 };
 
 async function getFirstPage(q?: string, nivel1?: string, anio?: string): Promise<Subvencion[]> {
-  let req = supabase
-    .from("subvenciones")
-    .select("id, cod_concesion, fecha_concesion, beneficiario, instrumento, importe, convocatoria, nivel1, nivel2, nivel3")
-    .order("fecha_concesion", { ascending: false })
-    .order("id", { ascending: false })
-    .range(0, PAGE_SIZE - 1);
+  const params: unknown[] = [];
+  const where: string[] = [];
 
-  if (q)      req = req.or(`beneficiario.ilike.%${q}%,convocatoria.ilike.%${q}%`);
-  if (nivel1) req = req.eq("nivel1", nivel1);
-  if (anio)   req = req.gte("fecha_concesion", `${anio}-01-01`)
-                       .lte("fecha_concesion", `${anio}-12-31`);
+  if (q)      where.push(`(beneficiario ILIKE $${params.push(`%${q}%`)} OR convocatoria ILIKE $${params.push(`%${q}%`)})`);
+  if (nivel1) where.push(`nivel1 = $${params.push(nivel1)}`);
+  if (anio) {
+    where.push(`fecha_concesion >= $${params.push(`${anio}-01-01`)}`);
+    where.push(`fecha_concesion <= $${params.push(`${anio}-12-31`)}`);
+  }
 
-  const { data } = await req;
-  return (data ?? []) as Subvencion[];
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  params.push(PAGE_SIZE);
+  const limitIdx = params.length;
+
+  const { rows } = await pool.query(
+    `SELECT id, cod_concesion, fecha_concesion, beneficiario, instrumento,
+            importe, convocatoria, nivel1, nivel2, nivel3
+     FROM subvenciones
+     ${whereClause}
+     ORDER BY fecha_concesion DESC NULLS LAST, id DESC
+     LIMIT $${limitIdx}`,
+    params
+  );
+  return rows as Subvencion[];
 }
 
 export default async function SubvencionesPage({

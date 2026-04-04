@@ -6,9 +6,10 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
 const NAV_LINKS = [
-  { href: "/contratos", label: "Contratos" },
-  { href: "/empresas",  label: "Empresas" },
-  { href: "/organos",   label: "Órganos" },
+  { href: "/contratos",    label: "Contratos" },
+  { href: "/empresas",     label: "Empresas" },
+  { href: "/organos",      label: "Órganos" },
+  { href: "/subvenciones", label: "Subvenciones" },
 ];
 
 export function MobileNav() {

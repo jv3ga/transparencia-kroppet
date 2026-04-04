@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-
-export const runtime = "edge";
+import pool from "@/lib/cockroach";
 
 export async function GET(
   _req: NextRequest,
@@ -11,16 +9,20 @@ export async function GET(
   const empresaId = parseInt(id, 10);
   if (isNaN(empresaId)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
-  const [{ data: empresa }, { data: ranking }] = await Promise.all([
-    supabase.from("empresas").select("id, nombre, nif").eq("id", empresaId).single(),
-    supabase.from("empresa_ranking").select("num_contratos, total_importe").eq("id", empresaId).single(),
-  ]);
+  try {
+    const [empresaRes, rankingRes] = await Promise.all([
+      pool.query("SELECT id, nombre, nif FROM empresas WHERE id = $1", [empresaId]),
+      pool.query("SELECT num_contratos, total_importe FROM empresa_ranking WHERE id = $1", [empresaId]),
+    ]);
 
-  if (!empresa) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!empresaRes.rows[0]) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  return NextResponse.json({
-    ...empresa,
-    num_contratos: ranking?.num_contratos ?? 0,
-    total_importe: ranking?.total_importe ?? 0,
-  });
+    return NextResponse.json({
+      ...empresaRes.rows[0],
+      num_contratos: rankingRes.rows[0]?.num_contratos ?? 0,
+      total_importe: rankingRes.rows[0]?.total_importe ?? 0,
+    });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-
-export const runtime = "edge";
+import pool from "@/lib/cockroach";
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q") ?? "";
 
-  let query = supabase
-    .from("organos")
-    .select("id, nombre")
-    .order("nombre")
-    .limit(50);
+  const params: unknown[] = [];
+  const where = q ? `WHERE nombre ILIKE $${params.push(`%${q}%`)}` : "";
+  params.push(50);
+  const limitIdx = params.length;
 
-  if (q) query = query.ilike("nombre", `%${q}%`);
-
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data ?? []);
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, nombre FROM organos ${where} ORDER BY nombre LIMIT $${limitIdx}`,
+      params
+    );
+    return NextResponse.json(rows);
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
