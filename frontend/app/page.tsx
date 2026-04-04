@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { StatsSection } from "@/components/stats-section";
+import { ChartsSection } from "@/components/charts-section";
 
 export default function HomePage() {
 
@@ -36,6 +37,12 @@ export default function HomePage() {
       <section>
         <SectionHeader label="En nuestra base de datos" />
         <StatsSection />
+      </section>
+
+      {/* Gráficas */}
+      <section>
+        <SectionHeader label="Radiografía del gasto" />
+        <ChartsSection />
       </section>
 
       {/* Módulos */}
