@@ -1,9 +1,7 @@
 name: ETL — Subvenciones BDNS
 
 on:
-  schedule:
-    - cron: "30 5 * * *"   # cada día a las 05:30 UTC (07:30 España)
-  workflow_dispatch:
+  workflow_dispatch:  # desactivado hasta tener capacidad de almacenamiento suficiente
 
 jobs:
   ingest:
