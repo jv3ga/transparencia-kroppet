@@ -156,12 +156,12 @@ export default function SueldosTable({
   return (
     <div className="space-y-4">
       {/* Filtros */}
-      <div className="flex gap-3 flex-wrap items-center">
+      <div className="flex gap-2 flex-wrap items-center">
         <Input
           placeholder="Buscar cargo o ministerio…"
           value={filters.q}
           onChange={e => handleSearch(e.target.value)}
-          className="max-w-xs"
+          className="w-full max-w-xs"
         />
 
         <Select value={filters.anyo} onValueChange={val => applyFilter({ anyo: val ?? "" })}>
@@ -177,7 +177,7 @@ export default function SueldosTable({
         </Select>
 
         <Select value={filters.ministerio} onValueChange={val => applyFilter({ ministerio: val ?? "" })}>
-          <SelectTrigger className={`w-52 ${filters.ministerio ? "border-primary text-primary" : ""}`}>
+          <SelectTrigger className={`w-40 sm:w-52 ${filters.ministerio ? "border-primary text-primary" : ""}`}>
             <SelectValue placeholder="Ministerio">
               {filters.ministerio
                 ? filters.ministerio.replace(/^Ministerio (de|del|para la|para el|de la|de los) /i, "")
@@ -209,8 +209,8 @@ export default function SueldosTable({
         </span>
       </div>
 
-      {/* Tabla */}
-      <div className="rounded-xl border border-border overflow-x-auto">
+      {/* Tabla — desktop */}
+      <div className="hidden md:block rounded-xl border border-border overflow-x-auto">
         <Table className="table-fixed w-full">
           <colgroup>
             <col className="w-[32%]" />
@@ -276,6 +276,36 @@ export default function SueldosTable({
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Cards — mobile */}
+      <div className="md:hidden divide-y divide-border rounded-xl border border-border">
+        {rows.length === 0 && !loading && (
+          <p className="text-center py-12 text-muted-foreground text-sm">Sin resultados</p>
+        )}
+        {rows.map(s => (
+          <div key={s.id} className="px-4 py-3 flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium leading-snug">{cleanCargo(s.alto_cargo)}</p>
+              {s.organismo && (
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{s.organismo}</p>
+              )}
+              {s.ministerio && (
+                <p className="text-xs text-muted-foreground/60 line-clamp-1">
+                  {s.ministerio.replace(/^Ministerio (de|del|para la|para el|de la|de los) /i, "")}
+                </p>
+              )}
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="tabnum text-sm font-semibold text-primary" style={{ fontFamily: "var(--font-mono)" }}>
+                {fmtEuros(s.retribucion)}
+              </p>
+              <p className="tabnum text-xs text-muted-foreground" style={{ fontFamily: "var(--font-mono)" }}>
+                {s.anyo}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div ref={sentinelRef} className="h-1" />
