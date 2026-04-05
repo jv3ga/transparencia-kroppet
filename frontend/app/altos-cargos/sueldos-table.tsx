@@ -26,6 +26,13 @@ type Sueldo = {
 type Sort = { col: "retribucion" | "anyo"; dir: "asc" | "desc" };
 type Filters = { q: string; anyo: string };
 
+function SortIcon({ col, sort }: { col: Sort["col"]; sort: Sort }) {
+  if (sort.col !== col) return <ChevronsUpDown className="h-3 w-3 opacity-40 ml-1 inline" />;
+  return sort.dir === "desc"
+    ? <ChevronDown className="h-3 w-3 ml-1 inline text-primary" />
+    : <ChevronUp   className="h-3 w-3 ml-1 inline text-primary" />;
+}
+
 function fmtEuros(n: number | null) {
   if (n == null) return "—";
   return new Intl.NumberFormat("es-ES", {
@@ -48,16 +55,21 @@ type Props = {
   initialCursor: number;
   initialQ: string;
   initialAnio: string;
+  initialSortCol?: Sort["col"];
+  initialSortDir?: Sort["dir"];
 };
 
-export default function SueldosTable({ initialData, initialCursor, initialQ, initialAnio }: Props) {
+export default function SueldosTable({
+  initialData, initialCursor, initialQ, initialAnio,
+  initialSortCol = "retribucion", initialSortDir = "desc",
+}: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
   const [rows, setRows]       = useState<Sueldo[]>(initialData);
   const [cursor, setCursor]   = useState<number | null>(initialCursor);
   const [loading, setLoading] = useState(false);
-  const [sort, setSort]       = useState<Sort>({ col: "retribucion", dir: "desc" });
+  const [sort, setSort]       = useState<Sort>({ col: initialSortCol, dir: initialSortDir });
 
   const [filters, setFilters] = useState<Filters>({ q: initialQ, anyo: initialAnio });
   const activeFilters = useRef<Filters>(filters);
@@ -82,16 +94,24 @@ export default function SueldosTable({ initialData, initialCursor, initialQ, ini
     setLoading(false);
   }, []);
 
+  function pushURL(f: Filters, s: Sort) {
+    startTransition(() => {
+      const p = new URLSearchParams();
+      if (f.q)    p.set("q", f.q);
+      if (f.anyo) p.set("anyo", f.anyo);
+      if (s.col !== "retribucion" || s.dir !== "desc") {
+        p.set("sort_col", s.col);
+        p.set("sort_dir", s.dir);
+      }
+      router.replace(`?${p.toString()}`, { scroll: false });
+    });
+  }
+
   function applyFilter(patch: Partial<Filters>) {
     const next = { ...activeFilters.current, ...patch };
     activeFilters.current = next;
     setFilters(next);
-    startTransition(() => {
-      const p = new URLSearchParams();
-      if (next.q)    p.set("q", next.q);
-      if (next.anyo) p.set("anyo", next.anyo);
-      router.replace(`?${p.toString()}`, { scroll: false });
-    });
+    pushURL(next, activeSort.current);
     fetchPage(next, activeSort.current, 0, true);
   }
 
@@ -102,14 +122,8 @@ export default function SueldosTable({ initialData, initialCursor, initialQ, ini
     };
     activeSort.current = next;
     setSort(next);
+    pushURL(activeFilters.current, next);
     fetchPage(activeFilters.current, next, 0, true);
-  }
-
-  function SortIcon({ col }: { col: Sort["col"] }) {
-    if (sort.col !== col) return <ChevronsUpDown className="h-3 w-3 opacity-40 ml-1 inline" />;
-    return sort.dir === "desc"
-      ? <ChevronDown className="h-3 w-3 ml-1 inline text-primary" />
-      : <ChevronUp   className="h-3 w-3 ml-1 inline text-primary" />;
   }
 
   useEffect(() => {
@@ -188,16 +202,16 @@ export default function SueldosTable({ initialData, initialCursor, initialQ, ini
               <TableHead>Organismo</TableHead>
               <TableHead>Ministerio</TableHead>
               <TableHead
-                className="text-right cursor-pointer select-none whitespace-nowrap"
+                className="text-right cursor-pointer select-none whitespace-nowrap hover:text-foreground transition-colors"
                 onClick={() => handleSort("retribucion")}
               >
-                Retribución <SortIcon col="retribucion" />
+                Retribución <SortIcon col="retribucion" sort={sort} />
               </TableHead>
               <TableHead
-                className="cursor-pointer select-none whitespace-nowrap"
+                className="cursor-pointer select-none whitespace-nowrap hover:text-foreground transition-colors"
                 onClick={() => handleSort("anyo")}
               >
-                Año <SortIcon col="anyo" />
+                Año <SortIcon col="anyo" sort={sort} />
               </TableHead>
             </TableRow>
           </TableHeader>

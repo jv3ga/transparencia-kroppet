@@ -15,7 +15,13 @@ type Sueldo = {
   retribucion: number | null;
 };
 
-async function getFirstPage(q?: string, anyo?: string): Promise<Sueldo[]> {
+const VALID_SORT_COLS = ["retribucion", "anyo"] as const;
+type SortCol = typeof VALID_SORT_COLS[number];
+
+async function getFirstPage(
+  q?: string, anyo?: string,
+  sortCol: SortCol = "retribucion", sortDir: "asc" | "desc" = "desc"
+): Promise<Sueldo[]> {
   const params: unknown[] = [];
   const where: string[] = [];
 
@@ -23,6 +29,7 @@ async function getFirstPage(q?: string, anyo?: string): Promise<Sueldo[]> {
   if (anyo) where.push(`anyo = $${params.push(parseInt(anyo, 10))}`);
 
   const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const dir = sortDir === "asc" ? "ASC" : "DESC";
   params.push(PAGE_SIZE);
   const limitIdx = params.length;
 
@@ -30,7 +37,7 @@ async function getFirstPage(q?: string, anyo?: string): Promise<Sueldo[]> {
     `SELECT id, anyo, alto_cargo, organismo, ministerio, retribucion
      FROM sueldos
      ${whereClause}
-     ORDER BY retribucion DESC NULLS LAST, id DESC
+     ORDER BY ${sortCol} ${dir} NULLS LAST, id DESC
      LIMIT $${limitIdx}`,
     params
   );
@@ -40,10 +47,12 @@ async function getFirstPage(q?: string, anyo?: string): Promise<Sueldo[]> {
 export default async function AltosCargoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; anyo?: string }>;
+  searchParams: Promise<{ q?: string; anyo?: string; sort_col?: string; sort_dir?: string }>;
 }) {
-  const { q, anyo } = await searchParams;
-  const initialData = await getFirstPage(q, anyo);
+  const { q, anyo, sort_col, sort_dir } = await searchParams;
+  const sortCol: SortCol = VALID_SORT_COLS.includes(sort_col as SortCol) ? (sort_col as SortCol) : "retribucion";
+  const sortDir: "asc" | "desc" = sort_dir === "asc" ? "asc" : "desc";
+  const initialData = await getFirstPage(q, anyo, sortCol, sortDir);
 
   return (
     <main className="max-w-7xl mx-auto px-5 py-8">
@@ -64,6 +73,8 @@ export default async function AltosCargoPage({
         initialCursor={PAGE_SIZE}
         initialQ={q ?? ""}
         initialAnio={anyo ?? ""}
+        initialSortCol={sortCol}
+        initialSortDir={sortDir}
       />
     </main>
   );
