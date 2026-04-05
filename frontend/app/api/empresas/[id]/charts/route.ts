@@ -6,8 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const empresaId = parseInt(id, 10);
-  if (isNaN(empresaId)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  if (!/^\d+$/.test(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
   try {
     const [organoRes, tipoRes] = await Promise.all([
@@ -21,7 +20,7 @@ export async function GET(
         GROUP BY o.id, o.nombre
         ORDER BY total_importe DESC
         LIMIT 6
-      `, [empresaId]),
+      `, [id]),
       pool.query(`
         SELECT tipo_contrato,
                COUNT(id)::int          AS num_contratos,
@@ -32,7 +31,7 @@ export async function GET(
           AND tipo_contrato IS NOT NULL
         GROUP BY tipo_contrato
         ORDER BY total_importe DESC
-      `, [empresaId]),
+      `, [id]),
     ]);
 
     return NextResponse.json({

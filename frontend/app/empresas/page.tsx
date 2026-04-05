@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import pool from "@/lib/cockroach";
 import EmpresasTable from "./empresas-table";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 
@@ -7,16 +7,21 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 50;
 
 async function getFirstPage(q?: string) {
-  let query = supabase
-    .from("empresa_ranking")
-    .select("*")
-    .order("total_importe", { ascending: false })
-    .order("id", { ascending: false })
-    .range(0, PAGE_SIZE - 1);
+  const params: unknown[] = [];
+  const where: string[] = [];
+  if (q) where.push(`(nombre ILIKE $${params.push(`%${q}%`)} OR nif ILIKE $${params.push(`%${q}%`)})`);
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  params.push(PAGE_SIZE);
 
-  if (q) query = query.ilike("nombre", `%${q}%`);
-  const { data } = await query;
-  return data ?? [];
+  const { rows } = await pool.query(
+    `SELECT id, nombre, nif, num_contratos, total_importe
+     FROM empresa_ranking
+     ${whereClause}
+     ORDER BY total_importe DESC NULLS LAST, id DESC
+     LIMIT $${params.length}`,
+    params
+  );
+  return rows;
 }
 
 export default async function EmpresasPage({

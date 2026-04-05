@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { supabase, type Contrato } from "@/lib/supabase";
+import pool from "@/lib/cockroach";
+import type { Contrato } from "@/lib/supabase";
 import ContratosTable from "@/app/contratos/contratos-table";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ProfileCharts } from "@/components/profile-charts";
@@ -8,34 +9,35 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
-async function getEmpresa(id: number) {
-  const [{ data: empresa }, { data: ranking }] = await Promise.all([
-    supabase.from("empresas").select("id, nombre, nif").eq("id", id).single(),
-    supabase.from("empresa_ranking").select("num_contratos, total_importe").eq("id", id).single(),
+async function getEmpresa(id: string) {
+  const [empresaRes, rankingRes] = await Promise.all([
+    pool.query("SELECT id, nombre, nif FROM empresas WHERE id = $1", [id]),
+    pool.query("SELECT num_contratos, total_importe FROM empresa_ranking WHERE id = $1", [id]),
   ]);
-  if (!empresa) return null;
+  if (!empresaRes.rows[0]) return null;
   return {
-    ...empresa,
-    num_contratos: ranking?.num_contratos ?? 0,
-    total_importe: ranking?.total_importe ?? 0,
+    ...empresaRes.rows[0],
+    num_contratos: rankingRes.rows[0]?.num_contratos ?? 0,
+    total_importe:  rankingRes.rows[0]?.total_importe  ?? 0,
   };
 }
 
-async function getContratos(empresa_id: number): Promise<Contrato[]> {
-  const { data } = await supabase
-    .from("contratos")
-    .select(`
-      id, expediente, objeto, tipo_contrato, procedimiento,
-      importe_sin_iva, importe_con_iva, estado, url_fuente,
-      fecha_adjudicacion, fecha_publicacion,
-      empresas ( nombre, nif ),
-      organos  ( nombre )
-    `)
-    .eq("empresa_id", empresa_id)
-    .order("fecha_publicacion", { ascending: false })
-    .order("id", { ascending: false })
-    .range(0, PAGE_SIZE - 1);
-  return (data ?? []) as unknown as Contrato[];
+async function getContratos(empresa_id: string): Promise<Contrato[]> {
+  const { rows } = await pool.query(
+    `SELECT c.id, c.expediente, c.objeto, c.tipo_contrato, c.procedimiento,
+            c.importe_sin_iva, c.importe_con_iva, c.estado, c.url_fuente,
+            c.fecha_adjudicacion, c.fecha_publicacion,
+            jsonb_build_object('nombre', e.nombre, 'nif', e.nif) AS empresas,
+            jsonb_build_object('nombre', o.nombre)               AS organos
+     FROM contratos c
+     LEFT JOIN empresas e ON e.id = c.empresa_id
+     LEFT JOIN organos  o ON o.id = c.organo_id
+     WHERE c.empresa_id = $1
+     ORDER BY c.fecha_publicacion DESC NULLS LAST, c.id DESC
+     LIMIT $2`,
+    [empresa_id, PAGE_SIZE]
+  );
+  return rows as unknown as Contrato[];
 }
 
 function fmtEuros(n: number) {
@@ -48,12 +50,11 @@ export default async function EmpresaPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const empresaId = parseInt(id, 10);
-  if (isNaN(empresaId)) notFound();
+  if (!/^\d+$/.test(id)) notFound();
 
   const [empresa, initialData] = await Promise.all([
-    getEmpresa(empresaId),
-    getContratos(empresaId),
+    getEmpresa(id),
+    getContratos(id),
   ]);
 
   if (!empresa) notFound();
@@ -113,7 +114,7 @@ export default async function EmpresaPage({
       </div>
 
       {/* Gráficas */}
-      <ProfileCharts entityId={empresaId} type="empresa" barLabel="Órganos contratantes" />
+      <ProfileCharts entityId={id} type="empresa" barLabel="Órganos contratantes" />
 
       {/* Contratos */}
       <div>
@@ -131,7 +132,7 @@ export default async function EmpresaPage({
           initialCursor={PAGE_SIZE}
           initialQ=""
           initialEstado=""
-          initialEmpresaId={String(empresaId)}
+          initialEmpresaId={id}
         />
       </div>
     </main>

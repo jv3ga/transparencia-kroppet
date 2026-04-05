@@ -164,7 +164,7 @@ export default function SueldosTable({
           className="max-w-xs"
         />
 
-        <Select value={filters.anyo} onValueChange={val => applyFilter({ anyo: val })}>
+        <Select value={filters.anyo} onValueChange={val => applyFilter({ anyo: val ?? "" })}>
           <SelectTrigger className={`w-28 ${filters.anyo ? "border-primary text-primary" : ""}`}>
             <SelectValue placeholder="Año">
               {filters.anyo || "Año"}
@@ -176,7 +176,7 @@ export default function SueldosTable({
           </SelectContent>
         </Select>
 
-        <Select value={filters.ministerio} onValueChange={val => applyFilter({ ministerio: val })}>
+        <Select value={filters.ministerio} onValueChange={val => applyFilter({ ministerio: val ?? "" })}>
           <SelectTrigger className={`w-52 ${filters.ministerio ? "border-primary text-primary" : ""}`}>
             <SelectValue placeholder="Ministerio">
               {filters.ministerio

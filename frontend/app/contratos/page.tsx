@@ -1,4 +1,5 @@
-import { supabase, type Contrato } from "@/lib/supabase";
+import pool from "@/lib/cockroach";
+import type { Contrato } from "@/lib/supabase";
 import ContratosTable from "./contratos-table";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 
@@ -10,28 +11,37 @@ async function getFirstPage(
   q?: string, estado?: string, tipo?: string, anio?: string,
   empresa_id?: string, organo_id?: string
 ): Promise<Contrato[]> {
-  let req = supabase
-    .from("contratos")
-    .select(`
-      id, expediente, objeto, tipo_contrato, procedimiento,
-      importe_sin_iva, importe_con_iva, estado, url_fuente,
-      fecha_adjudicacion, fecha_publicacion,
-      empresas ( nombre, nif ),
-      organos  ( nombre )
-    `)
-    .order("fecha_publicacion", { ascending: false })
-    .order("id", { ascending: false })
-    .range(0, PAGE_SIZE - 1);
+  const params: unknown[] = [];
+  const where: string[] = [];
 
-  if (q)          req = req.ilike("objeto", `%${q}%`);
-  if (estado)     req = req.eq("estado", estado);
-  if (tipo)       req = req.eq("tipo_contrato", tipo);
-  if (anio)       req = req.gte("fecha_publicacion", `${anio}-01-01`).lte("fecha_publicacion", `${anio}-12-31`);
-  if (empresa_id) req = req.eq("empresa_id", parseInt(empresa_id, 10));
-  if (organo_id)  req = req.eq("organo_id",  parseInt(organo_id,  10));
+  if (q)          where.push(`c.objeto ILIKE $${params.push(`%${q}%`)}`);
+  if (estado)     where.push(`c.estado = $${params.push(estado)}`);
+  if (tipo)       where.push(`c.tipo_contrato = $${params.push(tipo)}`);
+  if (anio) {
+    where.push(`c.fecha_publicacion >= $${params.push(`${anio}-01-01`)}`);
+    where.push(`c.fecha_publicacion <= $${params.push(`${anio}-12-31`)}`);
+  }
+  if (empresa_id) where.push(`c.empresa_id = $${params.push(empresa_id)}`);
+  if (organo_id)  where.push(`c.organo_id = $${params.push(organo_id)}`);
 
-  const { data } = await req;
-  return (data ?? []) as unknown as Contrato[];
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  params.push(PAGE_SIZE);
+
+  const { rows } = await pool.query(
+    `SELECT c.id, c.expediente, c.objeto, c.tipo_contrato, c.procedimiento,
+            c.importe_sin_iva, c.importe_con_iva, c.estado, c.url_fuente,
+            c.fecha_adjudicacion, c.fecha_publicacion,
+            jsonb_build_object('nombre', e.nombre, 'nif', e.nif) AS empresas,
+            jsonb_build_object('nombre', o.nombre)               AS organos
+     FROM contratos c
+     LEFT JOIN empresas e ON e.id = c.empresa_id
+     LEFT JOIN organos  o ON o.id = c.organo_id
+     ${whereClause}
+     ORDER BY c.fecha_publicacion DESC NULLS LAST, c.id DESC
+     LIMIT $${params.length}`,
+    params
+  );
+  return rows as unknown as Contrato[];
 }
 
 export default async function ContratosPage({

@@ -25,7 +25,7 @@ function truncate(s: string, max = 22) {
 }
 
 type Props = {
-  entityId: number;
+  entityId: string;
   type: "empresa" | "organo";
   barLabel: string; // "Órganos contratantes" | "Empresas adjudicatarias"
 };

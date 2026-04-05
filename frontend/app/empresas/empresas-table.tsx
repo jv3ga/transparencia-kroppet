@@ -11,7 +11,7 @@ import Link from "next/link";
 import { RankingCard } from "@/components/ui/ranking-card";
 
 type EmpresaRow = {
-  id: number;
+  id: string;
   nombre: string;
   nif: string;
   num_contratos: number;
@@ -52,7 +52,7 @@ export default function EmpresasTable({ initialData, initialCursor, initialQ }: 
     const json = await res.json();
     setRows(prev => {
       const merged = replace ? (json.data ?? []) : [...prev, ...(json.data ?? [])];
-      const seen = new Set<number>();
+      const seen = new Set<string>();
       return merged.filter((r: EmpresaRow) => seen.has(r.id) ? false : (seen.add(r.id), true));
     });
     setCursor(json.nextCursor ?? null);

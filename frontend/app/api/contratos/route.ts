@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
 
   if (q)          where.push(`c.objeto ILIKE $${params.push(`%${q}%`)}`);
   if (estado)     where.push(`c.estado = $${params.push(estado)}`);
-  if (organo_id)  where.push(`c.organo_id = $${params.push(parseInt(organo_id, 10))}`);
-  if (empresa_id) where.push(`c.empresa_id = $${params.push(parseInt(empresa_id, 10))}`);
+  if (organo_id)  where.push(`c.organo_id = $${params.push(organo_id)}`);
+  if (empresa_id) where.push(`c.empresa_id = $${params.push(empresa_id)}`);
   if (tipo)       where.push(`c.tipo_contrato = $${params.push(tipo)}`);
   if (anio) {
     where.push(`c.fecha_publicacion >= $${params.push(`${anio}-01-01`)}`);
