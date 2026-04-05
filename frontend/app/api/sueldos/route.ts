@@ -5,9 +5,10 @@ const PAGE_SIZE = 50;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const q      = searchParams.get("q")      ?? "";
-  const anyo   = searchParams.get("anyo")   ?? "";
-  const cursor = parseInt(searchParams.get("cursor") ?? "0", 10);
+  const q          = searchParams.get("q")          ?? "";
+  const anyo       = searchParams.get("anyo")       ?? "";
+  const ministerio = searchParams.get("ministerio") ?? "";
+  const cursor     = parseInt(searchParams.get("cursor") ?? "0", 10);
 
   const sort_col = searchParams.get("sort_col") ?? "retribucion";
   const sort_dir = searchParams.get("sort_dir") ?? "desc";
@@ -18,8 +19,9 @@ export async function GET(req: NextRequest) {
   const params: unknown[] = [];
   const where: string[] = [];
 
-  if (q)    where.push(`(alto_cargo ILIKE $${params.push(`%${q}%`)} OR ministerio ILIKE $${params.push(`%${q}%`)})`);
-  if (anyo) where.push(`anyo = $${params.push(parseInt(anyo, 10))}`);
+  if (q)          where.push(`(alto_cargo ILIKE $${params.push(`%${q}%`)} OR ministerio ILIKE $${params.push(`%${q}%`)})`);
+  if (anyo)       where.push(`anyo = $${params.push(parseInt(anyo, 10))}`);
+  if (ministerio) where.push(`ministerio = $${params.push(ministerio)}`);
 
   const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const limitIdx  = params.push(PAGE_SIZE);

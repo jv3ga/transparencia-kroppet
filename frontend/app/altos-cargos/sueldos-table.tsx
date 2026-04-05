@@ -24,7 +24,7 @@ type Sueldo = {
 };
 
 type Sort = { col: "retribucion" | "anyo"; dir: "asc" | "desc" };
-type Filters = { q: string; anyo: string };
+type Filters = { q: string; anyo: string; ministerio: string };
 
 function SortIcon({ col, sort }: { col: Sort["col"]; sort: Sort }) {
   if (sort.col !== col) return <ChevronsUpDown className="h-3 w-3 opacity-40 ml-1 inline" />;
@@ -55,13 +55,16 @@ type Props = {
   initialCursor: number;
   initialQ: string;
   initialAnio: string;
+  initialMinisterio: string;
   initialSortCol?: Sort["col"];
   initialSortDir?: Sort["dir"];
+  ministerios: string[];
 };
 
 export default function SueldosTable({
-  initialData, initialCursor, initialQ, initialAnio,
+  initialData, initialCursor, initialQ, initialAnio, initialMinisterio,
   initialSortCol = "retribucion", initialSortDir = "desc",
+  ministerios,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -71,7 +74,7 @@ export default function SueldosTable({
   const [loading, setLoading] = useState(false);
   const [sort, setSort]       = useState<Sort>({ col: initialSortCol, dir: initialSortDir });
 
-  const [filters, setFilters] = useState<Filters>({ q: initialQ, anyo: initialAnio });
+  const [filters, setFilters] = useState<Filters>({ q: initialQ, anyo: initialAnio, ministerio: initialMinisterio });
   const activeFilters = useRef<Filters>(filters);
   const activeSort    = useRef<Sort>(sort);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
@@ -80,8 +83,9 @@ export default function SueldosTable({
   const fetchPage = useCallback(async (f: Filters, s: Sort, cur: number, replace: boolean) => {
     setLoading(true);
     const params = new URLSearchParams({ cursor: String(cur), sort_col: s.col, sort_dir: s.dir });
-    if (f.q)    params.set("q", f.q);
-    if (f.anyo) params.set("anyo", f.anyo);
+    if (f.q)          params.set("q", f.q);
+    if (f.anyo)       params.set("anyo", f.anyo);
+    if (f.ministerio) params.set("ministerio", f.ministerio);
 
     const res  = await fetch(`/api/sueldos?${params}`);
     const json = await res.json();
@@ -97,8 +101,9 @@ export default function SueldosTable({
   function pushURL(f: Filters, s: Sort) {
     startTransition(() => {
       const p = new URLSearchParams();
-      if (f.q)    p.set("q", f.q);
-      if (f.anyo) p.set("anyo", f.anyo);
+      if (f.q)          p.set("q", f.q);
+      if (f.anyo)       p.set("anyo", f.anyo);
+      if (f.ministerio) p.set("ministerio", f.ministerio);
       if (s.col !== "retribucion" || s.dir !== "desc") {
         p.set("sort_col", s.col);
         p.set("sort_dir", s.dir);
@@ -146,7 +151,7 @@ export default function SueldosTable({
     searchTimeout.current = setTimeout(() => applyFilter({ q: val }), 350);
   }
 
-  const activeCount = [filters.anyo].filter(Boolean).length;
+  const activeCount = [filters.anyo, filters.ministerio].filter(Boolean).length;
 
   return (
     <div className="space-y-4">
@@ -171,9 +176,27 @@ export default function SueldosTable({
           </SelectContent>
         </Select>
 
+        <Select value={filters.ministerio || undefined} onValueChange={val => applyFilter({ ministerio: val ?? "" })}>
+          <SelectTrigger className={`w-52 ${filters.ministerio ? "border-primary text-primary" : ""}`}>
+            <SelectValue placeholder="Ministerio">
+              {filters.ministerio
+                ? filters.ministerio.replace(/^Ministerio (de|del|para la|para el|de la|de los) /i, "")
+                : "Ministerio"}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="max-h-72">
+            {filters.ministerio && <SelectItem value="">Todos</SelectItem>}
+            {ministerios.map(m => (
+              <SelectItem key={m} value={m}>
+                {m.replace(/^Ministerio (de|del|para la|para el|de la|de los) /i, "")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {activeCount > 0 && (
           <button
-            onClick={() => applyFilter({ anyo: "" })}
+            onClick={() => applyFilter({ anyo: "", ministerio: "" })}
             className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
           >
             Limpiar ({activeCount})

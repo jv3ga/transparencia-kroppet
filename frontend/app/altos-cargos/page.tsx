@@ -19,14 +19,15 @@ const VALID_SORT_COLS = ["retribucion", "anyo"] as const;
 type SortCol = typeof VALID_SORT_COLS[number];
 
 async function getFirstPage(
-  q?: string, anyo?: string,
+  q?: string, anyo?: string, ministerio?: string,
   sortCol: SortCol = "retribucion", sortDir: "asc" | "desc" = "desc"
 ): Promise<Sueldo[]> {
   const params: unknown[] = [];
   const where: string[] = [];
 
-  if (q)    where.push(`(alto_cargo ILIKE $${params.push(`%${q}%`)} OR ministerio ILIKE $${params.push(`%${q}%`)})`);
-  if (anyo) where.push(`anyo = $${params.push(parseInt(anyo, 10))}`);
+  if (q)          where.push(`(alto_cargo ILIKE $${params.push(`%${q}%`)} OR ministerio ILIKE $${params.push(`%${q}%`)})`);
+  if (anyo)       where.push(`anyo = $${params.push(parseInt(anyo, 10))}`);
+  if (ministerio) where.push(`ministerio = $${params.push(ministerio)}`);
 
   const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const dir = sortDir === "asc" ? "ASC" : "DESC";
@@ -44,15 +45,26 @@ async function getFirstPage(
   return rows as Sueldo[];
 }
 
+async function getMinisterios(): Promise<string[]> {
+  const { rows } = await pool.query(
+    `SELECT ministerio FROM sueldos WHERE ministerio IS NOT NULL GROUP BY ministerio ORDER BY COUNT(*) DESC`
+  );
+  return rows.map((r: { ministerio: string }) => r.ministerio);
+}
+
 export default async function AltosCargoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; anyo?: string; sort_col?: string; sort_dir?: string }>;
+  searchParams: Promise<{ q?: string; anyo?: string; ministerio?: string; sort_col?: string; sort_dir?: string }>;
 }) {
-  const { q, anyo, sort_col, sort_dir } = await searchParams;
+  const { q, anyo, ministerio, sort_col, sort_dir } = await searchParams;
   const sortCol: SortCol = VALID_SORT_COLS.includes(sort_col as SortCol) ? (sort_col as SortCol) : "retribucion";
   const sortDir: "asc" | "desc" = sort_dir === "asc" ? "asc" : "desc";
-  const initialData = await getFirstPage(q, anyo, sortCol, sortDir);
+
+  const [initialData, ministerios] = await Promise.all([
+    getFirstPage(q, anyo, ministerio, sortCol, sortDir),
+    getMinisterios(),
+  ]);
 
   return (
     <main className="max-w-7xl mx-auto px-5 py-8">
@@ -73,8 +85,10 @@ export default async function AltosCargoPage({
         initialCursor={PAGE_SIZE}
         initialQ={q ?? ""}
         initialAnio={anyo ?? ""}
+        initialMinisterio={ministerio ?? ""}
         initialSortCol={sortCol}
         initialSortDir={sortDir}
+        ministerios={ministerios}
       />
     </main>
   );
