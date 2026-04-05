@@ -35,8 +35,8 @@ function fmtDate(s: string | null) {
   return new Date(s).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-type Organo   = { id: number; nombre: string };
-type Empresa  = { id: number; nombre: string; nif: string };
+type Organo   = { id: string; nombre: string };
+type Empresa  = { id: string; nombre: string; nif: string };
 
 type Sort = { col: "fecha_publicacion" | "importe_sin_iva"; dir: "asc" | "desc" };
 
@@ -71,7 +71,7 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
   const [loading, setLoading]         = useState(false);
   const [organos, setOrganos]         = useState<Organo[]>(
     initialOrganoId && initialOrganoNombre
-      ? [{ id: parseInt(initialOrganoId, 10), nombre: initialOrganoNombre }]
+      ? [{ id: initialOrganoId, nombre: initialOrganoNombre }]
       : []
   );
   const [organoSearch, setOrganoSearch]     = useState("");
@@ -223,7 +223,7 @@ export default function ContratosTable({ initialData, initialCursor, initialQ, i
           <SelectTrigger className={`w-52 ${filters.organo_id ? "border-primary text-primary" : ""}`}>
             <SelectValue placeholder="Órgano contratante">
               {filters.organo_id
-                ? (organos.find(o => String(o.id) === filters.organo_id)?.nombre ?? filters.organo_id)
+                ? (organos.find(o => o.id === filters.organo_id)?.nombre ?? filters.organo_id)
                 : undefined}
             </SelectValue>
           </SelectTrigger>
