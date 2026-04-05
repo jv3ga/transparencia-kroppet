@@ -4,6 +4,8 @@ import type { Contrato } from "@/lib/supabase";
 import ContratosTable from "@/app/contratos/contratos-table";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ProfileCharts } from "@/components/profile-charts";
+import { EmpresaSubvenciones } from "@/components/empresa-subvenciones";
+import { fmtCompact } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +17,25 @@ async function getEmpresa(id: string) {
     pool.query("SELECT num_contratos, total_importe FROM empresa_ranking WHERE id = $1", [id]),
   ]);
   if (!empresaRes.rows[0]) return null;
-  return {
+  const empresa = {
     ...empresaRes.rows[0],
-    num_contratos: rankingRes.rows[0]?.num_contratos ?? 0,
-    total_importe:  rankingRes.rows[0]?.total_importe  ?? 0,
+    num_contratos:    rankingRes.rows[0]?.num_contratos ?? 0,
+    total_importe:     rankingRes.rows[0]?.total_importe  ?? 0,
+    num_subvenciones: 0,
+    total_subvenciones: null as number | null,
   };
+
+  if (empresa.nif) {
+    const { rows } = await pool.query(
+      `SELECT COUNT(*)::int AS n, SUM(importe) AS total
+       FROM subvenciones WHERE nif_beneficiario = $1`,
+      [empresa.nif]
+    );
+    empresa.num_subvenciones   = rows[0]?.n     ?? 0;
+    empresa.total_subvenciones = rows[0]?.total ?? null;
+  }
+
+  return empresa;
 }
 
 async function getContratos(empresa_id: string): Promise<Contrato[]> {
@@ -41,7 +57,7 @@ async function getContratos(empresa_id: string): Promise<Contrato[]> {
 }
 
 function fmtEuros(n: number) {
-  return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+  return fmtCompact(n);
 }
 
 export default async function EmpresaPage({
@@ -87,34 +103,56 @@ export default async function EmpresaPage({
         </div>
 
         {/* Stats chips */}
-        <div className="flex flex-wrap gap-3">
-          <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-muted/50 border border-border">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3">
+          {/* Contratos */}
+          <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-muted/50 border border-border min-w-0">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium truncate">
               Contratos adjudicados
             </span>
-            <span
-              className="tabnum text-lg font-bold text-primary"
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
+            <span className="tabnum text-lg font-bold text-primary truncate" style={{ fontFamily: "var(--font-mono)" }}>
               {empresa.num_contratos.toLocaleString("es-ES")}
             </span>
           </div>
-          <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-muted/50 border border-border">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-              Importe total (sin IVA)
+          <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-muted/50 border border-border min-w-0">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium truncate">
+              Importe contratos (sin IVA)
             </span>
-            <span
-              className="tabnum text-lg font-bold"
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
+            <span className="tabnum text-lg font-bold truncate" style={{ fontFamily: "var(--font-mono)" }}>
               {fmtEuros(empresa.total_importe)}
             </span>
           </div>
+
+          {/* Subvenciones */}
+          {empresa.num_subvenciones > 0 && (
+            <>
+              <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-muted/50 border border-border min-w-0">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium truncate">
+                  Subvenciones recibidas
+                </span>
+                <span className="tabnum text-lg font-bold text-primary truncate" style={{ fontFamily: "var(--font-mono)" }}>
+                  {empresa.num_subvenciones.toLocaleString("es-ES")}
+                </span>
+              </div>
+              {empresa.total_subvenciones != null && (
+                <div className="flex flex-col gap-0.5 px-3 py-2 rounded-lg bg-muted/50 border border-border min-w-0">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium truncate">
+                    Importe subvenciones
+                  </span>
+                  <span className="tabnum text-lg font-bold truncate" style={{ fontFamily: "var(--font-mono)" }}>
+                    {fmtEuros(empresa.total_subvenciones)}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
       {/* Gráficas */}
       <ProfileCharts entityId={id} type="empresa" barLabel="Órganos contratantes" />
+
+      {/* Subvenciones cruzadas */}
+      <EmpresaSubvenciones empresaId={id} />
 
       {/* Contratos */}
       <div>

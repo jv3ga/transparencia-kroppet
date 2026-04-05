@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
   const q      = searchParams.get("q")      ?? "";
   const nivel1 = searchParams.get("nivel1") ?? "";
   const anio   = searchParams.get("anio")   ?? "";
+  const nif    = searchParams.get("nif")    ?? "";
   const cursor = parseInt(searchParams.get("cursor") ?? "0", 10);
 
   const params: unknown[] = [];
@@ -15,6 +16,7 @@ export async function GET(req: NextRequest) {
 
   if (q)      where.push(`(beneficiario ILIKE $${params.push(`%${q}%`)} OR convocatoria ILIKE $${params.push(`%${q}%`)})`);
   if (nivel1) where.push(`nivel1 = $${params.push(nivel1)}`);
+  if (nif)    where.push(`nif_beneficiario = $${params.push(nif)}`);
   if (anio) {
     where.push(`fecha_concesion >= $${params.push(`${anio}-01-01`)}`);
     where.push(`fecha_concesion <= $${params.push(`${anio}-12-31`)}`);

@@ -61,6 +61,7 @@ type Props = {
   initialQ: string;
   initialNivel1: string;
   initialAnio: string;
+  initialNif?: string;
 };
 
 export default function SubvencionesTable({
@@ -69,6 +70,7 @@ export default function SubvencionesTable({
   initialQ,
   initialNivel1,
   initialAnio,
+  initialNif = "",
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -83,6 +85,7 @@ export default function SubvencionesTable({
     anio:   initialAnio,
   });
 
+  const fixedNif      = useRef(initialNif);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(null);
   const sentinelRef   = useRef<HTMLDivElement>(null);
   const activeFilters = useRef<Filters>(filters);
@@ -90,9 +93,10 @@ export default function SubvencionesTable({
   const fetchPage = useCallback(async (f: Filters, cur: number, replace: boolean) => {
     setLoading(true);
     const params = new URLSearchParams({ cursor: String(cur) });
-    if (f.q)      params.set("q", f.q);
-    if (f.nivel1) params.set("nivel1", f.nivel1);
-    if (f.anio)   params.set("anio", f.anio);
+    if (f.q)              params.set("q", f.q);
+    if (f.nivel1)         params.set("nivel1", f.nivel1);
+    if (f.anio)           params.set("anio", f.anio);
+    if (fixedNif.current) params.set("nif", fixedNif.current);
 
     const res  = await fetch(`/api/subvenciones?${params}`);
     const json = await res.json();

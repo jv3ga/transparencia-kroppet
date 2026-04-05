@@ -29,6 +29,17 @@ export const PROCEDIMIENTOS: Record<string, string> = {
   otros:                      "Otros",
 };
 
+/** Formatea importes grandes de forma compacta: 4,9 M€ / 320 K€ / 8.500 € */
+export function fmtCompact(n: number | null): string {
+  if (n == null) return "—";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000)
+    return `${(n / 1_000_000).toLocaleString("es-ES", { maximumFractionDigits: 1 })} M€`;
+  if (abs >= 10_000)
+    return `${(n / 1_000).toLocaleString("es-ES", { maximumFractionDigits: 0 })} K€`;
+  return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+}
+
 // Años disponibles (PLACE tiene datos desde 2014)
 const currentYear = new Date().getFullYear();
 export const ANIOS: string[] = Array.from(

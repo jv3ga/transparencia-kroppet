@@ -18,12 +18,13 @@ type Subvencion = {
   nivel3: string | null;
 };
 
-async function getFirstPage(q?: string, nivel1?: string, anio?: string): Promise<Subvencion[]> {
+async function getFirstPage(q?: string, nivel1?: string, anio?: string, nif?: string): Promise<Subvencion[]> {
   const params: unknown[] = [];
   const where: string[] = [];
 
   if (q)      where.push(`(beneficiario ILIKE $${params.push(`%${q}%`)} OR convocatoria ILIKE $${params.push(`%${q}%`)})`);
   if (nivel1) where.push(`nivel1 = $${params.push(nivel1)}`);
+  if (nif)    where.push(`nif_beneficiario = $${params.push(nif)}`);
   if (anio) {
     where.push(`fecha_concesion >= $${params.push(`${anio}-01-01`)}`);
     where.push(`fecha_concesion <= $${params.push(`${anio}-12-31`)}`);
@@ -48,10 +49,10 @@ async function getFirstPage(q?: string, nivel1?: string, anio?: string): Promise
 export default async function SubvencionesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; nivel1?: string; anio?: string }>;
+  searchParams: Promise<{ q?: string; nivel1?: string; anio?: string; nif?: string }>;
 }) {
-  const { q, nivel1, anio } = await searchParams;
-  const initialData = await getFirstPage(q, nivel1, anio);
+  const { q, nivel1, anio, nif } = await searchParams;
+  const initialData = await getFirstPage(q, nivel1, anio, nif);
 
   return (
     <main className="max-w-7xl mx-auto px-5 py-8">
@@ -72,6 +73,7 @@ export default async function SubvencionesPage({
         initialQ={q ?? ""}
         initialNivel1={nivel1 ?? ""}
         initialAnio={anio ?? ""}
+        initialNif={nif ?? ""}
       />
     </main>
   );
