@@ -32,3 +32,17 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python etl/borme_ingestor.py --days ${{ inputs.days || 2 }}
         # 2 días para cubrir posibles retrasos en la publicación del BORME
+
+      - name: Refrescar vistas materializadas
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python - <<'EOF'
+          import os, psycopg2
+          conn = psycopg2.connect(os.environ["DATABASE_URL"])
+          conn.autocommit = True
+          cur = conn.cursor()
+          cur.execute("REFRESH MATERIALIZED VIEW administrador_redes")
+          print("administrador_redes refrescada")
+          cur.close(); conn.close()
+          EOF

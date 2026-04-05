@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { href: "/organos",      label: "Órganos" },
   { href: "/subvenciones", label: "Subvenciones" },
   { href: "/altos-cargos", label: "Sueldos" },
+  { href: "/redes",        label: "Redes" },
 ];
 
 export function MobileNav() {

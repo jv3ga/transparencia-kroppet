@@ -30,6 +30,7 @@ export function Navbar() {
             { href: "/organos",      label: "Órganos" },
             { href: "/subvenciones", label: "Subvenciones" },
             { href: "/altos-cargos", label: "Sueldos" },
+            { href: "/redes",        label: "Redes" },
           ].map(({ href, label }) => (
             <Link
               key={href}

@@ -1,8 +1,25 @@
 import Link from "next/link";
+import pool from "@/lib/cockroach";
 import { StatsSection } from "@/components/stats-section";
 import { ChartsSection } from "@/components/charts-section";
+import { fmtCompact } from "@/lib/constants";
 
-export default function HomePage() {
+async function getTopRedes() {
+  const { rows } = await pool.query(
+    `SELECT administrador, num_empresas, total_contratos, total_importe
+     FROM administrador_redes
+     ORDER BY num_empresas DESC, total_importe DESC
+     LIMIT 3`
+  );
+  return rows;
+}
+
+function toTitleCase(s: string) {
+  return s.toLowerCase().split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
+export default async function HomePage() {
+  const topRedes = await getTopRedes();
 
   return (
     <main className="max-w-4xl mx-auto px-5 py-12 space-y-16">
@@ -45,6 +62,45 @@ export default function HomePage() {
         <ChartsSection />
       </section>
 
+      {/* Redes empresariales highlight */}
+      {topRedes.length > 0 && (
+        <section>
+          <SectionHeader label="Redes empresariales" />
+          <p className="text-xs text-muted-foreground mb-4 -mt-2">
+            Administradores que controlan varias empresas adjudicatarias de contratos públicos.
+          </p>
+          <div className="space-y-2 mb-4">
+            {topRedes.map((r: { administrador: string; num_empresas: number; total_contratos: number; total_importe: number }) => (
+              <Link
+                key={r.administrador}
+                href={`/redes?admin=${encodeURIComponent(r.administrador)}`}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-accent/30 transition-colors"
+              >
+                <span
+                  className={`shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                    r.num_empresas >= 4
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                  }`}
+                >
+                  {r.num_empresas}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{toTitleCase(r.administrador)}</p>
+                  <p className="text-xs text-muted-foreground tabnum" style={{ fontFamily: "var(--font-mono)" }}>
+                    {r.total_contratos} contratos · {fmtCompact(r.total_importe)}
+                  </p>
+                </div>
+                <span className="text-xs text-primary shrink-0 whitespace-nowrap">Ver red →</span>
+              </Link>
+            ))}
+          </div>
+          <Link href="/redes" className="text-xs text-primary hover:underline underline-offset-2">
+            Ver todos los administradores en red →
+          </Link>
+        </section>
+      )}
+
       {/* Módulos */}
       <section>
         <SectionHeader label="Qué puedes consultar" />
@@ -66,6 +122,12 @@ export default function HomePage() {
               title: "Sueldos de altos cargos",
               desc: "Retribuciones, dietas y complementos de los cargos públicos del gobierno central.",
               href: "/altos-cargos",
+              live: true,
+            },
+            {
+              title: "Redes empresariales",
+              desc: "Administradores que controlan varias empresas adjudicatarias. Detecta concentración de contratos.",
+              href: "/redes",
               live: true,
             },
             {
