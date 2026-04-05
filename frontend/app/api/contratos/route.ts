@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
       c.id, c.expediente, c.objeto, c.tipo_contrato, c.procedimiento,
       c.importe_sin_iva, c.importe_con_iva, c.estado, c.url_fuente,
       c.fecha_adjudicacion, c.fecha_publicacion,
-      e.nombre AS empresa_nombre, e.nif AS empresa_nif,
+      e.id::text AS empresa_id_val, e.nombre AS empresa_nombre, e.nif AS empresa_nif,
       o.nombre AS organo_nombre
     FROM contratos c
     LEFT JOIN empresas e ON e.id = c.empresa_id
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
       url_fuente:         r.url_fuente,
       fecha_adjudicacion: r.fecha_adjudicacion,
       fecha_publicacion:  r.fecha_publicacion,
-      empresas: r.empresa_nombre ? { nombre: r.empresa_nombre, nif: r.empresa_nif } : null,
+      empresas: r.empresa_nombre ? { id: r.empresa_id_val, nombre: r.empresa_nombre, nif: r.empresa_nif } : null,
       organos:  r.organo_nombre  ? { nombre: r.organo_nombre }                      : null,
     }));
     return NextResponse.json({

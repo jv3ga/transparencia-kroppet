@@ -31,7 +31,7 @@ async function getFirstPage(
     `SELECT c.id, c.expediente, c.objeto, c.tipo_contrato, c.procedimiento,
             c.importe_sin_iva, c.importe_con_iva, c.estado, c.url_fuente,
             c.fecha_adjudicacion, c.fecha_publicacion,
-            jsonb_build_object('nombre', e.nombre, 'nif', e.nif) AS empresas,
+            jsonb_build_object('id', e.id::text, 'nombre', e.nombre, 'nif', e.nif) AS empresas,
             jsonb_build_object('nombre', o.nombre)               AS organos
      FROM contratos c
      LEFT JOIN empresas e ON e.id = c.empresa_id

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -96,7 +97,14 @@ export function ContratoModal({ contrato, onClose }: Props) {
               <Field label="Empresa adjudicataria" value={
                 contrato.empresas ? (
                   <span>
-                    {contrato.empresas.nombre}
+                    {contrato.empresas.id ? (
+                      <Link
+                        href={`/empresas/${contrato.empresas.id}`}
+                        className="text-primary hover:underline underline-offset-2"
+                      >
+                        {contrato.empresas.nombre}
+                      </Link>
+                    ) : contrato.empresas.nombre}
                     {contrato.empresas.nif && (
                       <span className="block text-xs text-muted-foreground tabnum mt-0.5"
                             style={{ fontFamily: "var(--font-mono)" }}>

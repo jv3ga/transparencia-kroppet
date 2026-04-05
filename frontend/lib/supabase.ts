@@ -17,6 +17,6 @@ export type Contrato = {
   url_fuente: string | null;
   fecha_adjudicacion: string | null;
   fecha_publicacion: string | null;
-  empresas: { nombre: string; nif: string } | null;
+  empresas: { id: string; nombre: string; nif: string } | null;
   organos: { nombre: string } | null;
 };
