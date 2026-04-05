@@ -5,6 +5,7 @@ import ContratosTable from "@/app/contratos/contratos-table";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ProfileCharts } from "@/components/profile-charts";
 import { EmpresaSubvenciones } from "@/components/empresa-subvenciones";
+import { EmpresaAdministradores } from "@/components/empresa-administradores";
 import { fmtCompact } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -150,6 +151,9 @@ export default async function EmpresaPage({
 
       {/* Gráficas */}
       <ProfileCharts entityId={id} type="empresa" barLabel="Órganos contratantes" />
+
+      {/* Administradores BORME */}
+      <EmpresaAdministradores empresaId={id} />
 
       {/* Subvenciones cruzadas */}
       <EmpresaSubvenciones empresaId={id} />
