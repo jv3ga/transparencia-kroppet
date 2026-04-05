@@ -25,7 +25,22 @@ jobs:
 
       - name: Ejecutar ingestor
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python etl/place_ingestor.py --pages 20
         # 20 páginas ≈ 200-400 contratos nuevos/modificados del día
+
+      - name: Refrescar vistas materializadas
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python - <<'EOF'
+          import os, psycopg2
+          conn = psycopg2.connect(os.environ["DATABASE_URL"])
+          conn.autocommit = True
+          cur = conn.cursor()
+          for view in ("empresa_ranking", "organo_ranking", "contratos_por_tipo"):
+              print(f"Refreshing {view}...")
+              cur.execute(f"REFRESH MATERIALIZED VIEW {view}")
+          cur.close(); conn.close()
+          print("Done.")
+          EOF

@@ -23,7 +23,6 @@ jobs:
 
       - name: Ejecutar ingestor BDNS
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python etl/bdns_ingestor.py --days 2
         # 2 días para cubrir posibles retrasos en la publicación
